@@ -12,3 +12,5 @@ pyyaml
 soundfile
 tqdm
 tensorboard
+pandas
+seaborn
