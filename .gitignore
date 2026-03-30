@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# 데이터 (대용량, repo에 포함 X)
+data/raw/
+data/processed/
+*.wav
+*.flac
+*.tar.gz
+*.zip
+
+# 모델 체크포인트
+*.pt
+*.pth
+*.onnx
+checkpoints/
+
+# 결과 (선택적 추적)
+results/**/*.wav
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_metadata
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경변수
+.env

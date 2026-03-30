@@ -1,0 +1,14 @@
+torch>=2.0
+torchaudio>=2.0
+numpy
+scipy
+librosa
+pesq
+pystoi
+onnx
+onnxruntime
+matplotlib
+pyyaml
+soundfile
+tqdm
+tensorboard
