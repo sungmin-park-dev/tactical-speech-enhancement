@@ -1,0 +1,46 @@
+# Training Configuration
+# Experiment Design v3 Section 6.2
+
+model:
+  backbone: dpcrn          # dpcrn | unet
+  ablation_id: A-soft      # A-soft | A-hard | A-param | B | C
+  mask_type: soft           # soft | hard | parametric
+  n_dual_path_blocks: 2
+  lstm_hidden: 64
+  use_bwe: false
+
+audio:
+  n_fft: 512
+  hop_length: 160
+  win_length: 400
+  sample_rate: 16000
+  segment_samples: 64000
+
+optimizer:
+  type: AdamW
+  lr: 1.0e-3
+  weight_decay: 1.0e-2
+
+scheduler:
+  type: CosineAnnealingWarmRestarts
+  T_0: 10
+
+training:
+  epochs: 50
+  batch_size: 16            # A100: 16, T4: 8
+  num_workers: 4
+  seed: 0
+  early_stopping_patience: 10
+  grad_clip_norm: 5.0
+
+loss:
+  alpha: 0.5                # MR-STFT weight (search: 0.3 / 0.5 / 1.0)
+
+logging:
+  log_interval: 50          # batches
+  tensorboard_dir: runs/
+
+checkpoint:
+  save_dir: checkpoints/
+  save_best: true
+  save_last: true
