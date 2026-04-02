@@ -36,7 +36,7 @@ tactical-speech-enhancement/
 └── README.md
 ```
 
-## 구현 현황 (2026-03-31)
+## 구현 현황 (2026-04-01)
 
 | Phase | 모듈 | 상태 | 설명 |
 |-------|------|------|------|
@@ -77,8 +77,8 @@ AC ─→ [STFT] ─→ [AC Encoder 5L] ──┘
 
 ### 데이터 합성 파이프라인
 ```
-LibriSpeech clean → BC 시뮬 → 포화 시뮬 → BC 채널 (+ 마스크 3종)
-                  → 소음 혼합            → AC 채널
+LibriSpeech clean → BC 시뮬                         → BC 채널 (reliable)
+                  → 소음 혼합 → 포화 시뮬 → AC 채널 (+ 마스크 3종)
 ```
 - **Military**: SNR -20~+5dB, 합성 충격음+실제 녹음, 포화율 30~100%
 - **General**: SNR -10~+15dB, DEMAND/MUSAN/WHAM, 포화율 0~50%

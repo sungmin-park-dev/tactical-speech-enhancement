@@ -44,8 +44,10 @@ class MagnitudeAttentionGate(nn.Module):
         super().__init__()
         self.use_mask = use_mask
 
-        # 입력: |BC|(C) + |AC|(C) + mask(1) → 가중치
-        in_ch = n_channels * 2 + (1 if use_mask else 0)
+        # 입력 특징은 [real_channels, imag_channels]로 스택됨.
+        # 복소수 magnitude는 채널 수가 절반이므로 gate 입력도 이에 맞춘다.
+        mag_channels = n_channels // 2
+        in_ch = mag_channels * 2 + (1 if use_mask else 0)
 
         self.gate_conv = nn.Sequential(
             nn.Conv2d(in_ch, n_channels // 2, kernel_size=1, bias=True),
@@ -72,9 +74,12 @@ class MagnitudeAttentionGate(nn.Module):
         fused: (B, C, T, F)
         w    : (B, 1, T, F)  어텐션 가중치
         """
-        # Magnitude 계산 (복소수일 경우 abs, 실수일 경우 abs)
-        bc_mag = bc_feat.abs()   # (B, C, T, F)
-        ac_mag = ac_feat.abs()
+        # Complex magnitude: [real_channels, imag_channels] -> sqrt(real^2 + imag^2)
+        mag_channels = bc_feat.shape[1] // 2
+        bc_r, bc_i = bc_feat[:, :mag_channels], bc_feat[:, mag_channels:]
+        ac_r, ac_i = ac_feat[:, :mag_channels], ac_feat[:, mag_channels:]
+        bc_mag = torch.sqrt(bc_r ** 2 + bc_i ** 2 + 1e-8)
+        ac_mag = torch.sqrt(ac_r ** 2 + ac_i ** 2 + 1e-8)
 
         # 마스크 준비
         if self.use_mask and sat_mask is not None:

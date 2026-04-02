@@ -344,8 +344,8 @@ class DPCRNDual(nn.Module):
 
         crm = torch.tanh(self.crm_conv(x))  # (B, 2, T_f, F)
 
-        # Apply CRM: enhanced = CRM * input_spec (complex multiplication)
-        input_spec = ac_spec if ac_spec is not None else bc_spec
+        # Apply CRM on the more reliable BC spectrum base.
+        input_spec = bc_spec
         crm_r, crm_i = crm[:, 0:1], crm[:, 1:2]
         spec_r, spec_i = input_spec[:, 0:1], input_spec[:, 1:2]
         enh_r = crm_r * spec_r - crm_i * spec_i

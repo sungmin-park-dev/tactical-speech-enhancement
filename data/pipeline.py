@@ -3,9 +3,9 @@ pipeline.py
 합성 데이터 파이프라인 — Military / General 데이터셋 생성 통합
 
 실험 설계서 v3 §4 사양:
-  1. LibriSpeech clean 음성 → BC 시뮬 → 포화 시뮬 → 소음 혼합
-  2. Military / General 환경 설정
-  3. 분포 검증 통계 수집
+  1. LibriSpeech clean 음성 → BC 시뮬 (포화 없음)
+  2. LibriSpeech clean 음성 → 소음 혼합 → AC 포화 시뮬 → 마스크 생성
+  3. Military / General 환경 설정 + 분포 검증 통계 수집
 """
 
 import os
@@ -41,8 +41,8 @@ class SampleGenerator:
 
     흐름:
         clean_speech
-          ├─→ BCSimulator → BC_clean → saturation → BC_sat (+ masks)
-          └─→ NoiseMixer  → AC_noisy
+          ├─→ BCSimulator → BC_clean (모델 입력, 포화 없음)
+          └─→ NoiseMixer → AC_mixed → SaturationSimulator → AC_sat (+ masks)
     """
 
     def __init__(
@@ -88,8 +88,8 @@ class SampleGenerator:
         Returns
         -------
         dict:
-          'bc_signal'     : (N,) BC 시뮬 + 포화 신호 (모델 입력 BC 채널)
-          'ac_noisy'      : (N,) AC 소음 혼합 신호 (모델 입력 AC 채널)
+          'bc_signal'     : (N,) BC 시뮬 신호 (모델 입력 BC 채널, 포화 없음)
+          'ac_noisy'      : (N,) AC 소음 + 포화 신호 (모델 입력 AC 채널)
           'clean'         : (N,) 깨끗한 음성 (훈련 타깃)
           'masks'         : {'hard': (T,F), 'soft': (T,F), 'parametric': (T,F)}
           'meta'          : {snr_db, sat_applied, sat_mode, clip_level, tau_ms,
@@ -97,45 +97,48 @@ class SampleGenerator:
         """
         n = len(clean_speech)
 
-        # 1. BC 시뮬
-        bc_clean = self.bc_sim(clean_speech)
+        # 1. BC 시뮬 (포화 없음)
+        bc_signal = self.bc_sim(clean_speech)
 
-        # 2. 포화 적용 여부 결정
-        sat_applied = self.rng.random() < self.sat_prob
-        if sat_applied:
-            sat_mode = str(self.rng.choice(self._sat_modes, p=self._sat_probs))
-            bc_sat, sat_info = self.sat_sim(bc_clean, sat_mode=sat_mode)
-            masks = sat_info['masks']
-            clip_level = sat_info['clip_level']
-            tau_ms = sat_info['tau_recovery_ms']
-            clip_ratio = float(sat_info['clipped_regions'].mean())
-        else:
-            bc_sat = bc_clean.copy()
-            sat_mode = 'none'
-            clip_level = 0.0
-            tau_ms = 0.0
-            clip_ratio = 0.0
-            # 마스크: 전부 0
-            n_fft = self.sat_sim.n_fft
-            hop = self.sat_sim.hop_length
-            n_frames = 1 + max(0, (n - n_fft) // hop)
-            n_freq = n_fft // 2 + 1
-            zero_mask = np.zeros((n_frames, n_freq), dtype=np.float32)
-            masks = {'hard': zero_mask.copy(), 'soft': zero_mask.copy(), 'parametric': zero_mask.copy()}
-
-        # 3. AC 소음 혼합
+        # 2. AC 소음 혼합
         if impulse_ratio is None:
             if self.env == 'military':
                 impulse_ratio = float(self.rng.uniform(0.4, 0.6))
             else:
                 impulse_ratio = float(self.rng.uniform(0.0, 0.1))
 
-        ac_noisy, clean, noise, snr_db = self.noise_mixer.mix(
+        ac_mixed, clean, noise, snr_db = self.noise_mixer.mix(
             clean_speech, impulse_ratio=impulse_ratio
         )
 
+        # 3. AC에만 포화 적용 (마스크도 AC 기준)
+        sat_applied = self.rng.random() < self.sat_prob
+        if sat_applied:
+            sat_mode = str(self.rng.choice(self._sat_modes, p=self._sat_probs))
+            ac_noisy, sat_info = self.sat_sim(ac_mixed, sat_mode=sat_mode)
+            masks = sat_info['masks']
+            clip_level = sat_info['clip_level']
+            tau_ms = sat_info['tau_recovery_ms']
+            clip_ratio = float(sat_info['clipped_regions'].mean())
+        else:
+            ac_noisy = ac_mixed
+            sat_mode = 'none'
+            clip_level = 0.0
+            tau_ms = 0.0
+            clip_ratio = 0.0
+            n_fft = self.sat_sim.n_fft
+            hop = self.sat_sim.hop_length
+            n_frames = 1 + max(0, (n - n_fft) // hop)
+            n_freq = n_fft // 2 + 1
+            zero_mask = np.zeros((n_frames, n_freq), dtype=np.float32)
+            masks = {
+                'hard': zero_mask.copy(),
+                'soft': zero_mask.copy(),
+                'parametric': zero_mask.copy(),
+            }
+
         return {
-            'bc_signal': bc_sat,
+            'bc_signal': bc_signal,
             'ac_noisy':  ac_noisy,
             'clean':     clean,
             'masks':     masks,

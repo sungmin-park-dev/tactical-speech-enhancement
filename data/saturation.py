@@ -243,7 +243,7 @@ def soft_mask(
     for fi in range(n_f):
         s, e = _sample_range_of_frame(fi, n_fft, hop_length, win_length, n_samples)
         clip_ratio = np.mean(clipped_regions[s:e].astype(float))
-        val = float(sigmoid(clip_ratio / temperature))
+        val = float(sigmoid((clip_ratio - 0.5) / temperature)) if clip_ratio > 0 else 0.0
         mask[fi, :] = val
 
     return mask
@@ -425,3 +425,9 @@ if __name__ == '__main__':
     print(f"클리핑 비율: {info['clipped_regions'].mean():.3f}")
     for k, m in info['masks'].items():
         print(f"  {k} mask — shape: {m.shape}, mean: {m.mean():.4f}, max: {m.max():.4f}")
+
+    # Verify mask=0 for no clipping
+    zero_clip = np.zeros(64000, dtype=np.float32)
+    sm = soft_mask(zero_clip, 64000)
+    assert sm.max() == 0.0, f"soft_mask should be 0 for no clipping, got {sm.max()}"
+    print("✅ soft_mask(zero_clipping) = 0 verified")
