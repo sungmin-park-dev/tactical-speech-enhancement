@@ -17,6 +17,7 @@ Usage:
 import os
 import sys
 import time
+import json
 import yaml
 import argparse
 import warnings
@@ -302,13 +303,23 @@ def main():
     # Resume
     start_epoch = 0
     best_val_loss = float('inf')
+    best_val_sisnr = float('-inf')
+    best_epoch_by_loss = -1
+    best_epoch_by_sisnr = -1
     if args.resume and os.path.exists(args.resume):
         ckpt = torch.load(args.resume, map_location=device, weights_only=False)
         model.load_state_dict(ckpt['model_state_dict'])
         optimizer.load_state_dict(ckpt['optimizer_state_dict'])
         start_epoch = ckpt.get('epoch', 0) + 1
         best_val_loss = ckpt.get('best_val_loss', float('inf'))
-        print(f'Resumed from epoch {start_epoch}, best_val_loss={best_val_loss:.4f}')
+        best_val_sisnr = ckpt.get('best_val_sisnr', float('-inf'))
+        best_epoch_by_loss = ckpt.get('best_epoch_by_loss', -1)
+        best_epoch_by_sisnr = ckpt.get('best_epoch_by_sisnr', -1)
+        print(
+            f'Resumed from epoch {start_epoch}, '
+            f'best_val_loss={best_val_loss:.4f}, '
+            f'best_val_sisnr={best_val_sisnr:.2f}dB'
+        )
 
     # Training loop
     patience = cfg['training']['early_stopping_patience']
@@ -317,6 +328,9 @@ def main():
     patience_counter = 0
 
     print(f'\n=== Training Start ===')
+    last_epoch = start_epoch - 1
+    last_val_loss = float('nan')
+    last_val_sisnr = float('nan')
     for epoch in range(start_epoch, epochs):
         t0 = time.time()
 
@@ -342,12 +356,26 @@ def main():
               f'val_loss={val_loss:.4f} val_SI-SNR={val_sisnr:.2f}dB | '
               f'lr={current_lr:.2e}')
 
+        last_epoch = epoch
+        last_val_loss = val_loss
+        last_val_sisnr = val_sisnr
+
         # TensorBoard
         writer.add_scalar('train/epoch_loss', train_loss, epoch)
         writer.add_scalar('train/epoch_sisnr', train_sisnr, epoch)
         writer.add_scalar('val/epoch_loss', val_loss, epoch)
         writer.add_scalar('val/epoch_sisnr', val_sisnr, epoch)
         writer.add_scalar('lr', current_lr, epoch)
+
+        improved_loss = val_loss < best_val_loss
+        improved_sisnr = val_sisnr > best_val_sisnr
+
+        if improved_loss:
+            best_val_loss = val_loss
+            best_epoch_by_loss = epoch
+        if improved_sisnr:
+            best_val_sisnr = val_sisnr
+            best_epoch_by_sisnr = epoch
 
         # Checkpoint
         ckpt = {
@@ -358,6 +386,13 @@ def main():
             'val_loss': val_loss,
             'val_sisnr': val_sisnr,
             'best_val_loss': best_val_loss,
+            'best_val_sisnr': best_val_sisnr,
+            'best_epoch_by_loss': best_epoch_by_loss,
+            'best_epoch_by_sisnr': best_epoch_by_sisnr,
+            'alpha': alpha,
+            'seed': seed,
+            'env': env,
+            'mask_type': actual_mask_type,
             'config': cfg,
             'ablation_id': ablation_id,
         }
@@ -366,10 +401,8 @@ def main():
         if cfg['checkpoint'].get('save_last', True):
             torch.save(ckpt, os.path.join(save_dir, 'last.pt'))
 
-        # Save best
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            ckpt['best_val_loss'] = best_val_loss
+        # Save best-by-loss
+        if improved_loss:
             if cfg['checkpoint'].get('save_best', True):
                 torch.save(ckpt, os.path.join(save_dir, 'best.pt'))
             print(f'  >> New best val_loss: {best_val_loss:.4f}')
@@ -381,9 +414,35 @@ def main():
                       f'(patience={patience})')
                 break
 
+        # Save best-by-SI-SNR for alpha sweep comparisons
+        if improved_sisnr:
+            torch.save(ckpt, os.path.join(save_dir, 'best_sisnr.pt'))
+            print(f'  >> New best val_SI-SNR: {best_val_sisnr:.2f}dB')
+
     writer.close()
+
+    summary = {
+        'alpha': alpha,
+        'seed': seed,
+        'env': env,
+        'ablation_id': ablation_id,
+        'mask_type': actual_mask_type,
+        'epochs_requested': epochs,
+        'epochs_completed': last_epoch + 1,
+        'best_val_loss': best_val_loss,
+        'best_epoch_by_loss': best_epoch_by_loss + 1 if best_epoch_by_loss >= 0 else None,
+        'best_val_sisnr': best_val_sisnr,
+        'best_epoch_by_sisnr': best_epoch_by_sisnr + 1 if best_epoch_by_sisnr >= 0 else None,
+        'last_val_loss': last_val_loss,
+        'last_val_sisnr': last_val_sisnr,
+        'save_dir': save_dir,
+    }
+    with open(os.path.join(save_dir, 'metrics_summary.json'), 'w', encoding='utf-8') as f:
+        json.dump(summary, f, indent=2)
+
     print(f'\n=== Training Complete ===')
     print(f'Best val_loss: {best_val_loss:.4f}')
+    print(f'Best val_SI-SNR: {best_val_sisnr:.2f}dB')
     print(f'Checkpoints saved to: {save_dir}')
 
 
