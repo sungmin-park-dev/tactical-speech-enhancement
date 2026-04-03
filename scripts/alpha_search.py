@@ -61,6 +61,7 @@ def alpha_slug(alpha: float) -> str:
 def build_train_command(args: argparse.Namespace, alpha: float, save_dir: Path) -> List[str]:
     cmd = [
         sys.executable,
+        '-u',
         str(TRAIN_PY),
         '--config', args.config,
         '--data_config', args.data_config,
