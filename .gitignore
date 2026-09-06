@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.env
+.DS_Store
+*.onnx
+reports/
+recordings/
+*.tar.gz
+# Third-party runtime session caches
+*.ses

@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "recorded_at_utc": "2026-09-06T02:42:14.793388+00:00",
+  "scope": "local software validation, not Raspberry Pi or acoustic performance",
+  "suite": {
+    "passed": 187,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 4.96
+  },
+  "static_check": "ruff passed",
+  "builds": [
+    "wheel",
+    "sdist"
+  ],
+  "normal_speech": {
+    "speakers": 10,
+    "conditions": 30,
+    "protection_reentries": 0,
+    "additional_blocked_samples": 0
+  },
+  "guard_measurement": {
+    "recovery_after_bad_frame_ms": 256.0,
+    "maximum_positive_gain_step": 0.00048828125,
+    "expected_max_gain_step": 0.00048828125
+  },
+  "network": {
+    "real_local_processes": 2,
+    "bidirectional": true,
+    "simulated_duration_seconds": 3600,
+    "clock_drift_ppm": [
+      -300,
+      300
+    ],
+    "continuous_receive_paused_playout_regression": "passed"
+  },
+  "onnx_and_file": {
+    "pinned_model_contract": "passed",
+    "processed_fixture_samples": 160000,
+    "output_rate": 16000,
+    "output_encoding": "PCM16"
+  },
+  "pi_measured": false,
+  "benchmark": {
+    "system": "Darwin",
+    "architecture": "arm64",
+    "python": "3.13.5",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "onnxruntime": "1.29.0",
+      "soundfile": "0.14.0"
+    },
+    "evidence_scope": "local software execution; not a Raspberry Pi measurement",
+    "model": {
+      "model": "gtcrn_simple",
+      "size_bytes": 535638,
+      "sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534"
+    },
+    "settings": {
+      "sample_rate": 16000,
+      "frame_samples": 256,
+      "peak_threshold": 0.8,
+      "recovery_threshold": 0.6,
+      "saturation_threshold": 0.985,
+      "saturation_samples": 2,
+      "hold_ms": 64.0,
+      "normal_confirm_ms": 64.0,
+      "recovery_ms": 128.0,
+      "model_deadline_ms": 16.0,
+      "model_confirm_frames": 2,
+      "model_crossfade_ms": 64.0,
+      "ceiling_dbfs": -6.0,
+      "limiter_release_ms": 100.0,
+      "jitter_target_frames": 4,
+      "jitter_max_frames": 8,
+      "telemetry_capacity": 4096
+    },
+    "frames": 10000,
+    "mean_ms": 0.7190058112435509,
+    "max_ms": 2.943166997283697,
+    "deadline_misses": 0,
+    "deadline_ms": 16.0,
+    "model_rtf": 0.04493786320272193,
+    "recent_window_frames": 4096,
+    "recent_window_p50_ms": 0.6942084874026477,
+    "recent_window_p99_ms": 0.9311062662163758,
+    "scope": "GTCRN + WOLA wall time only; device/network and protection timing excluded"
+  }
+}

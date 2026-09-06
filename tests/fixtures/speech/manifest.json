@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "dataset": "LibriSpeech test-clean / OpenSLR SLR12",
+  "creators": [
+    "Vassil Panayotov",
+    "Guoguo Chen",
+    "Daniel Povey",
+    "Sanjeev Khudanpur"
+  ],
+  "source_page": "https://www.openslr.org/12/",
+  "source_archive_url": "https://www.openslr.org/resources/12/test-clean.tar.gz",
+  "source_archive_sha256": "39fde525e59672dc6d1551919b1478f724438a95aa55f874b576be21967e6c23",
+  "source_archive_md5": "32fa31d27d2e1cad72775fee3f4849a9",
+  "source_checksum_url": "https://www.openslr.org/resources/12/md5sum.txt",
+  "license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "sample_rate": 16000,
+  "channels": 1,
+  "encoding": "WAV PCM signed 16-bit little-endian",
+  "selection": "First ten speakers by numeric ID; numeric (speaker, chapter, utterance) ordering; concatenate each speaker's utterances and keep the first 160000 samples.",
+  "modifications": [
+    "FLAC decoded losslessly to PCM16",
+    "Selected utterances concatenated",
+    "Cropped to ten seconds",
+    "Encoded as WAV without source metadata"
+  ],
+  "test_transform": "Scale each decoded fixture by target_peak / max(abs(audio)); target_peak in [0.10, 0.30, 0.55]; prepend one second of zero-valued PCM; pad the final partial frame with zeros.",
+  "transcripts_included": false,
+  "fixtures": [
+    {
+      "speaker_id": 61,
+      "file": "speaker-0061.wav",
+      "sha256": "14b19bfc40958419d9a5dbee0b56ff9e79b412e8638b6e062351ffd1f06e8635",
+      "pcm_s16le_sha256": "1a84dcc29348c1a4eeaadee02fa335739aa4cb91e3f847618b09d486f4025127",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/61/70968/61-70968-0000.flac",
+          "source_sha256": "fd3c84146d8b357efc7f0d21de86de770721fc5ddac7e6577688dbf3cdabff5b",
+          "source_total_samples": 78480,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 78480,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 78480
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/61/70968/61-70968-0001.flac",
+          "source_sha256": "2f7236fa44f194f03b04571f94fd56cc99253f5d41496bff3476c3390dd20524",
+          "source_total_samples": 57760,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 57760,
+          "output_start_sample": 78480,
+          "output_end_sample_exclusive": 136240
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/61/70968/61-70968-0002.flac",
+          "source_sha256": "8676316e531d8c0e496e3677811ed2bf63e5aaf0a12446cde70416fd490b1792",
+          "source_total_samples": 47520,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 23760,
+          "output_start_sample": 136240,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 121,
+      "file": "speaker-0121.wav",
+      "sha256": "00487f6bbc80a4c3f0fbc0fefa52703e9de564b6678946c7bfd878804c5796a5",
+      "pcm_s16le_sha256": "cf730112391af6be89a030937208faf1e0155dd91b581c1a731f1d57b8af9684",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/121/121726/121-121726-0000.flac",
+          "source_sha256": "81378fdb3e648b43efb1cb8c4f87da3fc9cfbe19c5dda97e9e7361c4a2470d2f",
+          "source_total_samples": 135360,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 135360,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 135360
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/121/121726/121-121726-0001.flac",
+          "source_sha256": "4d4459266056fcd052ced71563e093ecf74a420abfa3a402283fb6b8eb848441",
+          "source_total_samples": 94800,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 24640,
+          "output_start_sample": 135360,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 237,
+      "file": "speaker-0237.wav",
+      "sha256": "0c043dfb542b3e53a9e1f3318eceaa306edf3c91098bda64bfd831dabb2856e4",
+      "pcm_s16le_sha256": "f8631e71206d535f10034cf0ae547991e90c25edebbf85b7cbc758cd8b85fac6",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/237/126133/237-126133-0000.flac",
+          "source_sha256": "25466538df82602d1e597b0cb016e4dd0ce11031cb8994a4289d1c07170878ee",
+          "source_total_samples": 212640,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 160000,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 260,
+      "file": "speaker-0260.wav",
+      "sha256": "2e2552c4282889e2c764e2ed8f9293b0ed945b3dc36fb1b3bb3f877d1f1ca2dc",
+      "pcm_s16le_sha256": "743ad61197791013469c5ee39e95619fa531249a9789156b2953278df93f3025",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/260/123286/260-123286-0000.flac",
+          "source_sha256": "d654a43d06f0e8b586b525e8ec83d6e3c0dc83c3f4742f8e25fd291db77248b3",
+          "source_total_samples": 112640,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 112640,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 112640
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/260/123286/260-123286-0001.flac",
+          "source_sha256": "482a025752a99bedf0d539c055c80c1f0396f3f0b0094fd1d3ff89b3d26beb9e",
+          "source_total_samples": 49120,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 47360,
+          "output_start_sample": 112640,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 672,
+      "file": "speaker-0672.wav",
+      "sha256": "b66db97f0680feb5b27298608af9a037d282ec100430a615995f06d815d89754",
+      "pcm_s16le_sha256": "5bac03cccf56458f2828e62d4f0109c4cecd6b3cabf5cfec91e4cf65d1c18c74",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/672/122797/672-122797-0000.flac",
+          "source_sha256": "776b1ce553e7ecb2dc0254b2aa4b35af0bde50db65dbf7bdbdfa1560a2c9ec36",
+          "source_total_samples": 65120,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 65120,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 65120
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/672/122797/672-122797-0001.flac",
+          "source_sha256": "db2e7f1a0b8bf6130c2b8cd104cc6b9dee0d0ffd3ab5eb68fad072a3e442b956",
+          "source_total_samples": 242080,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 94880,
+          "output_start_sample": 65120,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 908,
+      "file": "speaker-0908.wav",
+      "sha256": "338b1b58024016c7eb806ab6241433f3303013a0314a1fec1cff9c1d3f990982",
+      "pcm_s16le_sha256": "eb6dfad3badc5a01aaec89ff89cda380399bf5a43ac34cd333c017551459adde",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/908/31957/908-31957-0000.flac",
+          "source_sha256": "f77e6f02259d92f046a98f5e81c1a6b4c7ac4f0bcfe575ba888e8a817c22fa75",
+          "source_total_samples": 34000,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 34000,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 34000
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/908/31957/908-31957-0001.flac",
+          "source_sha256": "2782509f3e0125cdc87858930b23fac16cc438cadf87ea107605c97f31f334f0",
+          "source_total_samples": 181040,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 126000,
+          "output_start_sample": 34000,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 1089,
+      "file": "speaker-1089.wav",
+      "sha256": "d9f7c64ff2d47c1d3cad4c7ca4da7483ba4dabfbbde11bf85692ae34f54747c4",
+      "pcm_s16le_sha256": "6fba882f61a4d48853cd840267580b84bc38da22f6df908814e60c61838cfca6",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/1089/134686/1089-134686-0000.flac",
+          "source_sha256": "30885601173f96b0d8ddd020dc959b055c6c1582b85a33e3fcab8c4b08ed94c2",
+          "source_total_samples": 166960,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 160000,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 1188,
+      "file": "speaker-1188.wav",
+      "sha256": "737559638305658a76c1ab69f676b57bc6a1b29f7da286a5fcbdf95e91eea67a",
+      "pcm_s16le_sha256": "6492088d3f36ac549ed8961d0e4d3ca7f2265da876d69e8a07c3c9ac628ad53e",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/1188/133604/1188-133604-0000.flac",
+          "source_sha256": "4a10149395cb5af8aa5d04ef3adb49b3980baa93114d0851046e6343744b26cb",
+          "source_total_samples": 171600,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 160000,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 1221,
+      "file": "speaker-1221.wav",
+      "sha256": "4586e842fd2353d85bea71a65eb11cf4c984419bb7cdca56db5ac3ed8d41a5e6",
+      "pcm_s16le_sha256": "39feedd536688601c3b75e7dc8bad48032dd80982b2b5038254563b7bf293e23",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/1221/135766/1221-135766-0000.flac",
+          "source_sha256": "1f6b9ba126dc0f0a3cb813b04e2c970ff9583beeaf8cfaa8f7c8199244aa2514",
+          "source_total_samples": 198960,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 160000,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    },
+    {
+      "speaker_id": 1284,
+      "file": "speaker-1284.wav",
+      "sha256": "e093b8ff9bc4945f7b9521ed7555eba0b8088eb944f1297fbc656cd0eb642145",
+      "pcm_s16le_sha256": "e564beed16ed600df186b18c76b80d7e1c73eda3841338c00ebe4b3a3b591444",
+      "samples": 160000,
+      "segments": [
+        {
+          "archive_member": "LibriSpeech/test-clean/1284/1180/1284-1180-0000.flac",
+          "source_sha256": "1b76cef86ab0f918aac7f576be7398f29bfa968e6c78bdf024c335faedd378f1",
+          "source_total_samples": 129920,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 129920,
+          "output_start_sample": 0,
+          "output_end_sample_exclusive": 129920
+        },
+        {
+          "archive_member": "LibriSpeech/test-clean/1284/1180/1284-1180-0001.flac",
+          "source_sha256": "b44a1ad458675ba4d8d4dd6d4529d40fbc6fc63d27afce7877dc2024592b5414",
+          "source_total_samples": 124080,
+          "source_start_sample": 0,
+          "source_end_sample_exclusive": 30080,
+          "output_start_sample": 129920,
+          "output_end_sample_exclusive": 160000
+        }
+      ]
+    }
+  ]
+}

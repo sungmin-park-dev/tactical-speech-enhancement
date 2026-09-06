@@ -1,0 +1,18 @@
+# Software-validation defaults, not device or acoustic calibration.
+sample_rate = 16000
+frame_samples = 256
+peak_threshold = 0.8
+recovery_threshold = 0.6
+saturation_threshold = 0.985
+saturation_samples = 2
+hold_ms = 64.0
+normal_confirm_ms = 64.0
+recovery_ms = 128.0
+model_deadline_ms = 16.0
+model_confirm_frames = 2
+model_crossfade_ms = 64.0
+ceiling_dbfs = -6.0
+limiter_release_ms = 100.0
+jitter_target_frames = 4
+jitter_max_frames = 8
+telemetry_capacity = 4096

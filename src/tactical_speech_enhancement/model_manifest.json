@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "id": "gtcrn_simple",
+    "format": "onnx",
+    "source_url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/speech-enhancement-models/gtcrn_simple.onnx",
+    "size_bytes": 535638,
+    "sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534",
+    "filename": "gtcrn_simple.onnx"
+  },
+  "runtime_contract": {
+    "model_type": "gtcrn",
+    "comment": "gtcrn_simple",
+    "metadata_version": 1,
+    "sample_rate": 16000,
+    "n_fft": 512,
+    "window_length": 512,
+    "hop_length": 256,
+    "window_type": "hann_sqrt",
+    "inputs": {
+      "mix": [
+        1,
+        257,
+        1,
+        2
+      ],
+      "conv_cache": [
+        2,
+        1,
+        16,
+        16,
+        33
+      ],
+      "tra_cache": [
+        2,
+        3,
+        1,
+        1,
+        16
+      ],
+      "inter_cache": [
+        2,
+        1,
+        33,
+        16
+      ]
+    },
+    "outputs": {
+      "enh": [
+        1,
+        257,
+        1,
+        2
+      ],
+      "conv_cache_out": [
+        2,
+        1,
+        16,
+        16,
+        33
+      ],
+      "tra_cache_out": [
+        2,
+        3,
+        1,
+        1,
+        16
+      ],
+      "inter_cache_out": [
+        2,
+        1,
+        33,
+        16
+      ]
+    }
+  },
+  "provenance": {
+    "model": {
+      "name": "GTCRN",
+      "source_url": "https://github.com/Xiaobin-Rong/gtcrn",
+      "license": "MIT",
+      "license_url": "https://github.com/Xiaobin-Rong/gtcrn/blob/main/LICENSE",
+      "copyright": "Copyright (c) 2024 Rong Xiaobin"
+    },
+    "distribution": {
+      "name": "sherpa-onnx speech-enhancement-models release",
+      "project_url": "https://github.com/k2-fsa/sherpa-onnx",
+      "license": "Apache-2.0",
+      "license_url": "https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.5/LICENSE"
+    }
+  }
+}

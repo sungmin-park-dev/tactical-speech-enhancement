@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling>=1.26,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tactical-speech-enhancement"
+version = "0.1.0"
+description = "Streaming speech enhancement and bounded two-peer audio transport"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/*"]
+authors = [{name = "Tactical Speech Enhancement contributors"}]
+dependencies = ["numpy>=1.26,<3", "onnxruntime>=1.18,<2", "soundfile>=0.12,<1"]
+
+[project.optional-dependencies]
+audio = ["sounddevice>=0.5,<1"]
+dev = ["pytest>=8,<10", "ruff>=0.12,<1", "build>=1,<2"]
+
+[project.scripts]
+tse = "tactical_speech_enhancement.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tactical_speech_enhancement"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src", "/tests", "/docs", "/scripts", "/examples", "/README.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/licenses", "/pyproject.toml", "/AGENTS.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

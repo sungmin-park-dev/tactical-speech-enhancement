@@ -1,0 +1,35 @@
+name: software-validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: python -m pip install '.[dev]'
+      - run: tse model fetch
+      - run: tse model verify
+      - run: ruff check .
+      - run: pytest -q
+      - run: python -m build
+      - run: tse benchmark --frames 1000 --report reports/local-benchmark.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: local-software-benchmark-python-${{ matrix.python }}
+          path: reports/local-benchmark.json
