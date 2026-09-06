@@ -1,5 +1,7 @@
 # Tactical Speech Enhancement
 
+[![software-validation](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml/badge.svg)](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml)
+
 경량 엣지 장치에서 음성 잡음을 줄이고, Raspberry Pi 5 두 대 사이에
 Wi-Fi 또는 핫스팟으로 음성을 주고받는 Python 프로젝트다. 국방 분야의
 음성 통신을 배경으로 하며, 공개본은 단일 마이크·헤드셋을 사용하는

@@ -117,3 +117,9 @@ NumPy 2.5.2, ONNX Runtime 1.29.0, SoundFile 0.14.0**에서 기본 설정을
 [로컬 검증 기록](results/local-validation.json)에 보관했다. CI에서 실행하는
 설치·시험·빌드 명령은 [워크플로](../.github/workflows/ci.yml)에 정의되어 있다.
 이 문서에 기재한 시험 수와 측정값은 로컬 실행 결과다.
+
+## 원격 CI와 독립 설치 검증
+
+동일 코드의 GitHub Actions 검증에서 Linux의 Python 3.11·3.13 작업이 모두 통과했다. 각 작업은 설치, 실제 모델 다운로드·검증, 전체 시험, 정적 검사와 배포 파일 빌드를 실행했다. [검증 실행 기록](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/runs/34007305694)을 확인할 수 있다.
+
+원격 저장소를 별도 폴더로 새로 내려받고 새로운 가상환경에 설치한 뒤에도 **187개 시험 통과·건너뜀 0개**와 정적 검사 통과를 확인했다. 이 검증은 로컬 소프트웨어와 CI 환경의 결과이며 실제 Pi 측정을 포함하지 않는다.
