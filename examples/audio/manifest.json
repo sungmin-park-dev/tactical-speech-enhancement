@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file": "tests/fixtures/speech/speaker-0061.wav",
+    "sha256": "14b19bfc40958419d9a5dbee0b56ff9e79b412e8638b6e062351ffd1f06e8635",
+    "source_page": "https://www.openslr.org/12/",
+    "creators": [
+      "Vassil Panayotov",
+      "Guoguo Chen",
+      "Daniel Povey",
+      "Sanjeev Khudanpur"
+    ]
+  },
+  "license": "CC-BY-4.0",
+  "sample_rate": 16000,
+  "duration_seconds": 11.0,
+  "recipe": {
+    "seed": 20260906,
+    "speech_peak": 0.3,
+    "noise_snr_db": 5,
+    "noise": "Gaussian white noise plus a 120 Hz sine with relative amplitude 0.5",
+    "leading_silence_seconds": 1,
+    "pulse_shape": "clipped Gaussian bursts replacing input samples; first two at opposite rails",
+    "impulses": [
+      {
+        "start_seconds": 4.0,
+        "duration_seconds": 0.005,
+        "amplitude": 0.95
+      },
+      {
+        "start_seconds": 4.192,
+        "duration_seconds": 0.005,
+        "amplitude": 0.95
+      },
+      {
+        "start_seconds": 7.0,
+        "duration_seconds": 0.05,
+        "amplitude": 0.999
+      }
+    ],
+    "normalization_after_processing": false
+  },
+  "mp3": {
+    "included": true,
+    "codec": "libmp3lame",
+    "bitrate": "64k",
+    "encoder_version": "ffmpeg version 8.0 Copyright (c) 2000-2025 the FFmpeg developers",
+    "purpose": "listening only; lossless WAV is the sample-limit validation artifact"
+  },
+  "cases": {
+    "noise": {
+      "processing": {
+        "system": "Darwin",
+        "architecture": "arm64",
+        "python": "3.13.5",
+        "dependencies": {
+          "numpy": "2.5.2",
+          "onnxruntime": "1.29.0",
+          "soundfile": "0.14.0"
+        },
+        "evidence_scope": "local software execution; not a Raspberry Pi measurement",
+        "mode": "offline",
+        "settings": {
+          "sample_rate": 16000,
+          "frame_samples": 256,
+          "peak_threshold": 0.8,
+          "recovery_threshold": 0.6,
+          "saturation_threshold": 0.985,
+          "saturation_samples": 2,
+          "hold_ms": 64.0,
+          "normal_confirm_ms": 64.0,
+          "recovery_ms": 128.0,
+          "model_deadline_ms": 16.0,
+          "model_confirm_frames": 2,
+          "model_crossfade_ms": 64.0,
+          "ceiling_dbfs": -6.0,
+          "limiter_release_ms": 100.0,
+          "jitter_target_frames": 4,
+          "jitter_max_frames": 8,
+          "telemetry_capacity": 4096
+        },
+        "model": {
+          "model": "gtcrn_simple",
+          "size_bytes": 535638,
+          "sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534"
+        },
+        "samples": 176000,
+        "sample_rate": 16000,
+        "scheduling_delay_removed_samples": 512,
+        "note": "Deterministic offline processing; original startup protection remains. No real-time deadline claim.",
+        "pipeline": {
+          "frames": 690,
+          "muted_source_frames": 4,
+          "max_alignment_frames": 2,
+          "model_results_used": 684,
+          "guard": {
+            "frames": 690,
+            "anomalies": 0,
+            "reentries": 0,
+            "invalid_frames": 0,
+            "saturated_frames": 0,
+            "generation": 0,
+            "stage": "normal",
+            "gain": 1.0
+          },
+          "worker": {
+            "submitted": 690,
+            "max_running": 1,
+            "processed": 690,
+            "resets": 1,
+            "sequence_gaps": 0,
+            "model_errors": 0,
+            "deadline_misses": 0,
+            "discarded_stale": 0,
+            "max_results": 1,
+            "pending": 0,
+            "running": 0,
+            "result_slots": 0,
+            "generation": 0,
+            "closed": true,
+            "latency_sample_count": 690,
+            "latency_sample_capacity": 4096,
+            "latency_mean_ms": 0.0,
+            "latency_max_ms": 0.0,
+            "latency_recent_p95_ms": 0.0
+          },
+          "alignment_frames": 0,
+          "alignment_delay_ms": 32.0,
+          "capture_processing_mean_ms": 0.890997449438884,
+          "capture_processing_max_ms": 13.248292030766606,
+          "capture_processing_recent_p95_ms": 1.0146127810003234,
+          "capture_latency_sample_count": 690,
+          "capture_latency_sample_capacity": 4096,
+          "limiter_invalid_blocks": 0,
+          "closed": true,
+          "worker_stopped": true,
+          "worker_mode": "offline_synchronous"
+        }
+      },
+      "checks": {
+        "length_and_rate_match": true,
+        "output_peak_pcm16": 9329,
+        "output_peak_dbfs": -10.91229683767841,
+        "digital_ceiling_passed": true,
+        "guard_zero_gain_samples_checked": 1024,
+        "guard_zero_gain_leaked_samples": 0,
+        "guard_final_gain": 1.0,
+        "guard_anomalous_frames": 0
+      }
+    },
+    "impulse": {
+      "processing": {
+        "system": "Darwin",
+        "architecture": "arm64",
+        "python": "3.13.5",
+        "dependencies": {
+          "numpy": "2.5.2",
+          "onnxruntime": "1.29.0",
+          "soundfile": "0.14.0"
+        },
+        "evidence_scope": "local software execution; not a Raspberry Pi measurement",
+        "mode": "offline",
+        "settings": {
+          "sample_rate": 16000,
+          "frame_samples": 256,
+          "peak_threshold": 0.8,
+          "recovery_threshold": 0.6,
+          "saturation_threshold": 0.985,
+          "saturation_samples": 2,
+          "hold_ms": 64.0,
+          "normal_confirm_ms": 64.0,
+          "recovery_ms": 128.0,
+          "model_deadline_ms": 16.0,
+          "model_confirm_frames": 2,
+          "model_crossfade_ms": 64.0,
+          "ceiling_dbfs": -6.0,
+          "limiter_release_ms": 100.0,
+          "jitter_target_frames": 4,
+          "jitter_max_frames": 8,
+          "telemetry_capacity": 4096
+        },
+        "model": {
+          "model": "gtcrn_simple",
+          "size_bytes": 535638,
+          "sha256": "e77603ac0c23dac3227dd2d7135b3a585cbee2679048aecfa886657d3ae1b534"
+        },
+        "samples": 176000,
+        "sample_rate": 16000,
+        "scheduling_delay_removed_samples": 512,
+        "note": "Deterministic offline processing; original startup protection remains. No real-time deadline claim.",
+        "pipeline": {
+          "frames": 690,
+          "muted_source_frames": 40,
+          "max_alignment_frames": 2,
+          "model_results_used": 648,
+          "guard": {
+            "frames": 690,
+            "anomalies": 6,
+            "reentries": 2,
+            "invalid_frames": 0,
+            "saturated_frames": 4,
+            "generation": 6,
+            "stage": "normal",
+            "gain": 1.0
+          },
+          "worker": {
+            "submitted": 684,
+            "max_running": 1,
+            "processed": 684,
+            "resets": 4,
+            "sequence_gaps": 3,
+            "model_errors": 0,
+            "deadline_misses": 0,
+            "discarded_stale": 3,
+            "max_results": 1,
+            "pending": 0,
+            "running": 0,
+            "result_slots": 0,
+            "generation": 6,
+            "closed": true,
+            "latency_sample_count": 684,
+            "latency_sample_capacity": 4096,
+            "latency_mean_ms": 0.0,
+            "latency_max_ms": 0.0,
+            "latency_recent_p95_ms": 0.0
+          },
+          "alignment_frames": 0,
+          "alignment_delay_ms": 32.0,
+          "capture_processing_mean_ms": 0.8200480126053689,
+          "capture_processing_max_ms": 1.0677080135792494,
+          "capture_processing_recent_p95_ms": 0.9446812706300988,
+          "capture_latency_sample_count": 690,
+          "capture_latency_sample_capacity": 4096,
+          "limiter_invalid_blocks": 0,
+          "closed": true,
+          "worker_stopped": true,
+          "worker_mode": "offline_synchronous"
+        }
+      },
+      "checks": {
+        "length_and_rate_match": true,
+        "output_peak_pcm16": 8965,
+        "output_peak_dbfs": -11.257992821230324,
+        "digital_ceiling_passed": true,
+        "guard_zero_gain_samples_checked": 8704,
+        "guard_zero_gain_leaked_samples": 0,
+        "guard_final_gain": 1.0,
+        "guard_anomalous_frames": 6
+      }
+    }
+  },
+  "files": [
+    {
+      "file": "clean-reference.wav",
+      "sha256": "ea8c238477dc1109a3d1364b12a203b56e590c50d56be8e46dd4349a5bb78036",
+      "samples": 176000
+    },
+    {
+      "file": "clean-reference.mp3",
+      "sha256": "4fe6d77cb7ad881dd1b941bc019711572df6dee39df5fedaa21c2f00738d76d2"
+    },
+    {
+      "file": "noise-input.wav",
+      "sha256": "7434692d885500c9111f3ab5467b923e763aebeca52fe3529c47cd6c39e27616",
+      "samples": 176000
+    },
+    {
+      "file": "noise-input.mp3",
+      "sha256": "18f86ef38d4fcedad727d2ad00ac4936f7a4f0f6db1af404f65cfefb8186296b"
+    },
+    {
+      "file": "noise-output.wav",
+      "sha256": "1a2c198d4b258386b07a2ad5cb49fadafdd8468b81dfa170f1ac69ee293448a6",
+      "samples": 176000
+    },
+    {
+      "file": "noise-output.mp3",
+      "sha256": "003058f55ce892d6a759275230465b7c10c384ad4509ae3f22225a3f0b7c8797"
+    },
+    {
+      "file": "impulse-input.wav",
+      "sha256": "e753bdf139f914c534c46f02b69c106f86bd891b81628f6a0eca8b2e17b8d41a",
+      "samples": 176000
+    },
+    {
+      "file": "impulse-input.mp3",
+      "sha256": "2491f2b53b9de6da2d381d0fcf3f3eff580a16403a171e0b23a7e98455f76dd6"
+    },
+    {
+      "file": "impulse-output.wav",
+      "sha256": "6d42b2a304557dcc7bd129c177a4dd9b25fc7e5102698fe99c318f724096529b",
+      "samples": 176000
+    },
+    {
+      "file": "impulse-output.mp3",
+      "sha256": "cc194d235eb9e03fd688d8f6321542400cadfb32deb7f77434b210b28dfd7000"
+    }
+  ]
+}

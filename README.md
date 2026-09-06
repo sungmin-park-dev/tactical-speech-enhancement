@@ -2,7 +2,7 @@
 
 [![software-validation](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml/badge.svg)](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml)
 
-경량 엣지 장치에서 음성 잡음을 줄이고, Raspberry Pi 5 두 대 사이에
+경량 엣지(EDGE) 장치에서 음성 잡음을 줄이고, Raspberry Pi 5 두 대 사이에
 Wi-Fi 또는 핫스팟으로 음성을 주고받는 Python 프로젝트다. 국방 분야의
 음성 통신을 배경으로 하며, 공개본은 단일 마이크·헤드셋을 사용하는
 양방향 통신과 그 소프트웨어 검증에 집중한다.
@@ -39,7 +39,7 @@ flowchart LR
 모델, 보호·복귀 제어, 통신, 오디오 장치 처리를 나누어 기기 측정과
 후속 모델 비교 시 각 원인을 구분할 수 있도록 구성했다.
 
-## 설치와 파일 실행
+## 설치와 음성 파일 처리
 
 Python 3.11 이상을 사용한다. 저장소를 내려받은 폴더에서 실행한다.
 
@@ -53,7 +53,7 @@ tse process tests/fixtures/speech/speaker-0061.wav output.wav
 tse benchmark --frames 10000
 ```
 
-모델 다운로드 후 SHA-256과 입출력 계약을 검사한다. 파일 입력은 모노
+모델 다운로드 후 SHA-256과 입출력 규격을 검사한다. 파일 입력은 모노
 16 kHz를 사용한다. 자동 샘플레이트 변환은 제공하지 않는다.
 오디오 장치 실행에는 운영체제의 PortAudio 지원이 필요하다.
 
@@ -63,6 +63,23 @@ tse benchmark --frames 10000
 ```sh
 tse --config examples/software-defaults.toml benchmark --frames 10000
 ```
+
+## 처리 전후 음성 예제
+
+공개 음성 자료에 합성 잡음을 더한 **11초 예제**다. 앞 1초는 시작 보호를
+완료하기 위한 무음이며, 이후 10초가 음성이다. MP3 링크를 열거나 내려받아
+처리 전후를 비교할 수 있다.
+
+| 예제 | 처리 전 MP3 | 처리 후 MP3 |
+|---|---|---|
+| 배경 잡음 | [잡음이 섞인 음성](examples/audio/noise-input.mp3) | [GTCRN 처리 결과](examples/audio/noise-output.mp3) |
+| 충격·포화 | [합성 충격이 추가된 음성](examples/audio/impulse-input.mp3) | [음소거·복귀 결과](examples/audio/impulse-output.mp3) |
+
+[잡음을 더하기 전 기준 음성](examples/audio/clean-reference.mp3)도 함께 제공한다.
+처리 후 별도의 음량 보정은 하지 않았다. 충격 예제에서는 해당 구간의 음성도
+함께 차단된다. 이 예제는 파일 처리 결과이며 실제 Pi 녹음이나 음질 평가 점수는
+아니다. WAV 원본, 생성 조건과 다시 만드는 명령은
+[음성 예제 안내](examples/audio/README.md)에 정리했다.
 
 ## 두 장치 실행
 
@@ -85,13 +102,13 @@ tse peer --bind 192.0.2.20:5000 --peer 192.0.2.10:5000 \
 통신은 동일 로컬 네트워크의 명시한 상대를 전제로 하며, 응용 계층 암호화나
 상대 인증을 제공하지 않는다.
 
-## 결과를 해석하는 범위
+## 검증 범위와 한계
 
 | 구분 | 내용 |
 |---|---|
 | 이전 장치 경험 — 소유자 보고 | 이전 구현에서 Raspberry Pi 5 두 대의 모델 실행과 Wi-Fi·핫스팟 음성 통신 목표를 달성했다고 보고했다. |
 | 이 공개본 | 처리·통신 구조를 재구성하고, 고정된 시험 입력과 자동 테스트로 검증한다. 실행 환경과 실제 결과는 [검증 문서](docs/validation.md)에 기록한다. |
-| 공개본의 실제 Pi 측정 | 아직 실시하지 않았다. 음질, 종단 지연, 장치 설정별 오차단율은 **Unknown**이다. |
+| 공개본의 실제 Pi 측정 | 아직 실시하지 않았다. 음질, 종단 지연, 장치 설정별 오차단율은 **미확인**이다. |
 
 이전 장치 경험은 현재 공개 코드의 하드웨어 검증을 대신하지 않는다.
 기본 임계값과 복귀 시간은 **소프트웨어 검증용 초기값**이다. 다음 단계는
@@ -115,4 +132,4 @@ ruff check .
 
 프로젝트 코드는 [MIT](LICENSE), GTCRN은 원 저작자의 MIT 라이선스다.
 공개 음성 시험 자료에는 CC BY 4.0을 적용한다. 출처·원문 라이선스·변경
-내역은 [제삼자 고지](THIRD_PARTY_NOTICES.md)에 모았다.
+내역은 [외부 구성요소·데이터 라이선스 안내](THIRD_PARTY_NOTICES.md)에 모았다.
