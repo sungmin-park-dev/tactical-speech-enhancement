@@ -2,46 +2,58 @@
 
 [![software-validation](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml/badge.svg)](https://github.com/sungmin-park-dev/tactical-speech-enhancement/actions/workflows/ci.yml)
 
-경량 엣지(EDGE) 장치에서 음성 잡음을 줄이고, Raspberry Pi 5 두 대 사이에
-Wi-Fi 또는 핫스팟으로 음성을 주고받는 Python 프로젝트다. 국방 분야의
-음성 통신을 배경으로 하며, 공개본은 단일 마이크·헤드셋을 사용하는
-양방향 통신과 그 소프트웨어 검증에 집중한다.
+[한국어](README.ko.md)
 
-GTCRN streaming ONNX로 음성을 처리한다. 큰 피크나 포화가 감지되면
-해당 구간을 음소거하고, 정상 입력을 확인한 뒤 음량을 점진적으로
-복구한다. 폭음 중 음성 보존은 목표에 포함하지 않는다.
+A Python project for real-time speech denoising on low-power edge devices and
+two-way voice between two Raspberry Pi 5 units over Wi-Fi or a hotspot. The
+setting is voice communication in a defense context; this public version
+covers single-microphone headset communication between two peers and the
+software validation behind it.
 
-## 구현 구조
+Speech is processed with the streaming ONNX version of
+[GTCRN](https://github.com/Xiaobin-Rong/gtcrn). When a large peak or clipping
+is detected, the affected segment is muted, and gain is restored gradually once
+the input is normal again. Preserving speech during a blast is not a goal.
+
+![Spectrograms of the clean reference, the noisy input and the processed output](docs/figures/noise-spectrogram.svg)
+
+*Spectrograms of the [background-noise example](#beforeafter-examples): clean reference, input with white noise and a 120 Hz tone at 5 dB SNR, and the processed output. Drawn with [make_spectrogram_figure.py](scripts/make_spectrogram_figure.py).*
+
+## Processing pipeline
 
 ```mermaid
 flowchart LR
-    A[마이크 입력] --> B[독립 입력 검사]
-    B --> C[GTCRN 추론]
-    B --> D[원음 정렬]
-    C --> E[결과 선택과 보호 이득]
+    A[Microphone] --> B[Input check]
+    B --> C[GTCRN inference]
+    B --> D[Aligned dry signal]
+    C --> E[Source selection and protection gain]
     D --> E
-    E --> F[최종 출력 제한]
-    F --> G[UDP 송신]
-    G --> H[상대 수신 지터 버퍼]
-    H --> I[독립 출력 제한과 재생]
+    E --> F[Output limiter]
+    F --> G[UDP send]
+    G --> H[Peer jitter buffer]
+    H --> I[Peer limiter and playback]
 ```
 
-- **16 kHz·256샘플:** 프레임당 16ms, 상대 한 명과 PCM16 음성을 송수신한다.
-- **추론과 독립적인 보호:** 입력을 먼저 검사한다. 느리거나 멈춘 모델이
-  보호 판단과 송신 선택을 막지 않으며, 늦은 결과는 보호를 해제하지 못한다.
-- **조건부 원음 전환:** 정상 입력에서 모델만 실패하면 지연을 맞춘 원음을
-  사용한다. 이상 구간과 보호 유지 구간에는 이 우회를 허용하지 않는다.
-- **제한된 대기열:** 원음 정렬은 고정 2프레임이다. 목표 4·최대 8프레임은
-  수신 지터 버퍼에만 적용하며 재생 대기열을 별도로 추가하지 않는다.
-- **출력 제한:** 송신과 상대 재생에서 각각 최종 디지털 피크를 −6dBFS로
-  제한한다. 이 값은 실제 음압이나 청력보호 성능을 나타내지 않는다.
+- **16 kHz, 256-sample frames:** 16 ms per frame, PCM16 voice to and from one peer.
+- **Protection independent of inference:** the input is checked first. A slow
+  or stalled model cannot block the protection decision or the send schedule,
+  and a late result never lifts protection.
+- **Conditional dry-signal fallback:** if only the model fails on healthy
+  input, the delay-aligned input is sent instead. This bypass is not allowed
+  during abnormal input or while protection is held.
+- **Bounded queues:** dry-signal alignment is fixed at 2 frames. The target of
+  4 and maximum of 8 frames applies only to the receive jitter buffer.
+- **Output limits:** the final digital peak is limited to −6 dBFS on both the
+  sending and the playback side. This is a digital limit, not a sound-pressure
+  or hearing-protection figure.
 
-모델, 보호·복귀 제어, 통신, 오디오 장치 처리를 나누어 기기 측정과
-후속 모델 비교 시 각 원인을 구분할 수 있도록 구성했다.
+Model, protection control, networking and audio-device handling are separate
+modules, so that device measurements and later model comparisons can be
+attributed to one part at a time.
 
-## 설치와 음성 파일 처리
+## Install and process a file
 
-Python 3.11 이상을 사용한다. 저장소를 내려받은 폴더에서 실행한다.
+Python 3.11 or later, run from the repository folder.
 
 ```sh
 python3 -m venv .venv
@@ -53,94 +65,91 @@ tse process tests/fixtures/speech/speaker-0061.wav output.wav
 tse benchmark --frames 10000
 ```
 
-모델 다운로드 후 SHA-256과 입출력 규격을 검사한다. 파일 입력은 모노
-16 kHz를 사용한다. 자동 샘플레이트 변환은 제공하지 않는다.
-오디오 장치 실행에는 운영체제의 PortAudio 지원이 필요하다.
-
-초기 설정 전체는 [software-defaults.toml](examples/software-defaults.toml)에
-있다. 설정 파일을 명시해서 같은 조건으로 실행할 수 있다.
+The model download is checked against its SHA-256 and I/O signature. File
+input must be mono 16 kHz; no automatic resampling is provided. Running with
+audio devices requires PortAudio. All defaults are in
+[software-defaults.toml](examples/software-defaults.toml):
 
 ```sh
 tse --config examples/software-defaults.toml benchmark --frames 10000
 ```
 
-## 처리 전후 음성 예제
+## Before/after examples
 
-공개 음성 자료에 합성 잡음을 더한 **11초 예제**다. 앞 1초는 시작 보호를
-완료하기 위한 무음이며, 이후 10초가 음성이다. MP3 링크를 열거나 내려받아
-처리 전후를 비교할 수 있다.
+11-second clips made from public speech with synthetic noise added. The first
+second is silence used to complete start-up protection.
 
-| 예제 | 처리 전 MP3 | 처리 후 MP3 |
+| Example | Input | Output |
 |---|---|---|
-| 배경 잡음 | [잡음이 섞인 음성](examples/audio/noise-input.mp3) | [GTCRN 처리 결과](examples/audio/noise-output.mp3) |
-| 충격·포화 | [합성 충격이 추가된 음성](examples/audio/impulse-input.mp3) | [음소거·복귀 결과](examples/audio/impulse-output.mp3) |
+| Background noise (5 dB SNR) | [noisy speech](examples/audio/noise-input.mp3) | [GTCRN output](examples/audio/noise-output.mp3) |
+| Impulse and clipping | [speech with synthetic impulses](examples/audio/impulse-input.mp3) | [mute and recovery](examples/audio/impulse-output.mp3) |
 
-[잡음을 더하기 전 기준 음성](examples/audio/clean-reference.mp3)도 함께 제공한다.
-처리 후 별도의 음량 보정은 하지 않았다. 충격 예제에서는 해당 구간의 음성도
-함께 차단된다. 이 예제는 파일 처리 결과이며 실제 Pi 녹음이나 음질 평가 점수는
-아니다. WAV 원본, 생성 조건과 다시 만드는 명령은
-[음성 예제 안내](examples/audio/README.md)에 정리했다.
+A [clean reference](examples/audio/clean-reference.mp3) is included. Outputs
+are not level-normalized. In the impulse example, speech inside the muted
+segment is cut as well. These are file-processing results, not Raspberry Pi
+recordings or quality scores. Generation settings and commands are in the
+[audio example notes](examples/audio/README.md).
 
-## 두 장치 실행
+## Two-device run
 
-두 장치를 같은 Wi-Fi 또는 핫스팟에 연결한 뒤 `tse devices`로 각 장치의
-입력·출력 번호를 확인한다. 아래 주소와 장치 번호는 예제이며 실제 연결에
-맞게 바꾼다. 16 kHz 모노 입력·출력을 지원하는 헤드셋을 사용한다.
+Connect both devices to the same Wi-Fi or hotspot and list audio devices with
+`tse devices`. Addresses and device numbers below are examples.
 
 ```sh
-# 장치 A
+# Device A
 tse peer --bind 192.0.2.10:5000 --peer 192.0.2.20:5000 \
   --input-device 1 --output-device 2 --duration 60 --report peer-a.json
 
-# 장치 B
+# Device B
 tse peer --bind 192.0.2.20:5000 --peer 192.0.2.10:5000 \
   --input-device 1 --output-device 2 --duration 60 --report peer-b.json
 ```
 
-`192.0.2.0/24`는 문서용 주소다. 설정과 진단 절차는
-[Raspberry Pi 실행 안내](docs/raspberry-pi.md)에 설명되어 있다.
-통신은 동일 로컬 네트워크의 명시한 상대를 전제로 하며, 응용 계층 암호화나
-상대 인증을 제공하지 않는다.
+See the [Raspberry Pi guide](docs/raspberry-pi.md) for setup and diagnostics.
+The link assumes a named peer on the same local network and provides no
+application-level encryption or authentication.
 
-## 개발 이력
+## History
 
-2025년 7월 실시간 음성 통신 구성을 검토하며 시작했고, 2025년 9월부터
-공개 딥러닝 잡음 제거 모델(Demucs 계열)을 Raspberry Pi 5에서 실행하고
-최적화하는 실험을 이어 갔다. 2026년 3–8월에는 별도 비공개 연구
-프로토타입에서 학습·평가 실험과 GTCRN streaming 실시간 데모를 만들었다.
-2026년 9월의 이 공개본은 그 경험을 바탕으로 범위를 단일 마이크·헤드셋
-양방향 통신과 그 소프트웨어 검증으로 좁혀 새로 구성했다. 이전 단계의
-코드와 기록은 이 저장소에 포함하지 않으며, 아래 「이전 장치 경험」은 그
-단계에 대한 소유자 보고다.
+Work began in July 2025 with a review of real-time voice communication
+setups. The first device build ran Facebook Research's
+[denoiser](https://github.com/facebookresearch/denoiser) (Demucs-based) in real
+time on Raspberry Pi 5 units in two helmet prototypes, with two-way voice over
+Wi-Fi, and the model was then retrained starting from that denoiser. This
+public version (September 2026) was rebuilt with a narrower scope around GTCRN:
+single-microphone headset communication between two peers and its software
+validation. Code and records from the earlier build are not included here.
 
-## 검증 범위와 한계
+## Validation and limits
 
-| 구분 | 내용 |
+| Scope | Status |
 |---|---|
-| 이전 장치 경험 — 소유자 보고 | 이전 구현에서 Raspberry Pi 5 두 대의 모델 실행과 Wi-Fi·핫스팟 음성 통신 목표를 달성했다고 보고했다. |
-| 이 공개본 | 처리·통신 구조를 재구성하고, 고정된 시험 입력과 자동 테스트로 검증한다. 실행 환경과 실제 결과는 [검증 문서](docs/validation.md)에 기록한다. |
-| 공개본의 실제 Pi 측정 | 아직 실시하지 않았다. 음질, 종단 지연, 장치 설정별 오차단율은 **미확인**이다. |
+| Earlier device build (owner-reported) | Model inference on two Raspberry Pi 5 units and Wi-Fi/hotspot voice communication were achieved in the earlier implementation. Its code is not in this repository. |
+| This public version | Processing and networking rebuilt and checked with fixed test inputs and automated tests: 187 tests pass with 0 skipped, locally and on GitHub Actions (Linux, Python 3.11 and 3.13). |
+| Local latency (macOS arm64) | Mean 0.72 ms per 16 ms frame over 10,000 frames, max 2.94 ms, 0 frames over 16 ms. |
+| Raspberry Pi measurements of this version | Not yet done. Speech quality, end-to-end latency and false-mute rate are unmeasured. |
 
-이전 장치 경험은 현재 공개 코드의 하드웨어 검증을 대신하지 않는다.
-기본 임계값과 복귀 시간은 **소프트웨어 검증용 초기값**이다. 다음 단계는
-실제 Pi 측정에 따른 입력 이득·시간 설정 조정과 동일 조건의 모델 비교다.
-
-## 검증과 문서
+The default thresholds and recovery times are initial values for software
+testing. The next step is tuning input gain and timing on real devices and
+comparing models under the same conditions.
 
 ```sh
 python -m pytest
 ruff check .
 ```
 
-정상 음성 시험은 공개 LibriSpeech에서 고정한 10개 음성의 세 음량 조건을
-사용한다. 충격·포화·잘못된 입력, 느린 추론, 패킷 오류와 시계 차이를
-별도로 시험한다. 모델 통합 시험에는 먼저 `tse model fetch`를 실행한다.
+The speech tests use 10 fixed LibriSpeech utterances at three levels. Impulse,
+clipping, malformed input, slow inference, packet errors and clock drift are
+tested separately. Run `tse model fetch` before the model integration tests.
 
-- [처리 순서·버퍼·초기 설정](docs/architecture.md)
-- [시험 입력·합격 기준·검증 결과](docs/validation.md)
-- [Raspberry Pi 연결·실행·측정](docs/raspberry-pi.md)
-- [개발 판단과 에이전트 협업 기록](docs/development.md)
+Detailed documents (in Korean):
+[architecture](docs/architecture.md) ·
+[validation](docs/validation.md) ·
+[Raspberry Pi](docs/raspberry-pi.md) ·
+[design notes](docs/development.md)
 
-프로젝트 코드는 [MIT](LICENSE), GTCRN은 원 저작자의 MIT 라이선스다.
-공개 음성 시험 자료에는 CC BY 4.0을 적용한다. 출처·원문 라이선스·변경
-내역은 [외부 구성요소·데이터 라이선스 안내](THIRD_PARTY_NOTICES.md)에 모았다.
+## License
+
+Project code is [MIT](LICENSE); GTCRN is under its authors' MIT license; the
+public speech test data is CC BY 4.0. Sources and changes are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

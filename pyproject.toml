@@ -24,7 +24,7 @@ tse = "tactical_speech_enhancement.cli:main"
 packages = ["src/tactical_speech_enhancement"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src", "/tests", "/docs", "/scripts", "/examples", "/README.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/licenses", "/pyproject.toml", "/AGENTS.md"]
+include = ["/src", "/tests", "/docs", "/scripts", "/examples", "/README.md", "/LICENSE", "/THIRD_PARTY_NOTICES.md", "/licenses", "/pyproject.toml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
