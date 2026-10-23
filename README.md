@@ -114,7 +114,7 @@ application-level encryption or authentication.
 Work began in July 2025 with a review of real-time voice communication
 setups. The first device build ran Facebook Research's
 [denoiser](https://github.com/facebookresearch/denoiser) (Demucs-based) in real
-time on Raspberry Pi 5 units in two helmet prototypes, with two-way voice over
+time on Raspberry Pi 5 units in two helmet prototypes, with full-duplex voice over
 Wi-Fi, and the model was then retrained starting from that denoiser. This
 public version (September 2026) was rebuilt with a narrower scope around GTCRN:
 single-microphone headset communication between two peers and its software
