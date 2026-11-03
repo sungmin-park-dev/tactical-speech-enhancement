@@ -26,6 +26,19 @@ def audio_module():
     return sd
 
 
+def input_status(status) -> bool:
+    """True when PortAudio reports damaged input (overflow/underflow).
+
+    Objects without per-direction attributes (e.g. a plain bool) are treated
+    conservatively as input problems, preserving the earlier behaviour.
+    """
+    if not status:
+        return False
+    if hasattr(status, "input_overflow") or hasattr(status, "input_underflow"):
+        return bool(getattr(status, "input_overflow", False) or getattr(status, "input_underflow", False))
+    return True
+
+
 def list_devices():
     return audio_module().query_devices()
 
@@ -66,7 +79,8 @@ def run_peer(args, model_path: Path, settings: Settings) -> dict:
     transport = None
     stop = threading.Event()
     callback_errors: list[str] = []
-    stats = {"callbacks": 0, "audio_status_events": 0}
+    stats = {"callbacks": 0, "audio_status_events": 0, "input_status_events": 0,
+             "output_status_events": 0}
     callback_times = deque(maxlen=settings.telemetry_capacity)
     callback_total = 0.0
     callback_maximum = 0.0
@@ -84,15 +98,20 @@ def run_peer(args, model_path: Path, settings: Settings) -> dict:
             if frames != settings.frame_samples or indata.shape != (frames, 1):
                 raise ValueError("Audio device changed the fixed frame/channel contract")
             now = time.monotonic()
-            result = controller.process(indata[:, 0].copy(), now=now, overload=bool(status))
+            # Only input-side flags mean the captured block is damaged. An output
+            # underflow (playback starved) must not mute the speaker's own input.
+            input_bad = input_status(status)
+            if status:
+                stats["audio_status_events"] += 1
+                stats["input_status_events"] += input_bad
+                stats["output_status_events"] += bool(
+                    getattr(status, "output_underflow", False) or getattr(status, "output_overflow", False)
+                )
+            result = controller.process(indata[:, 0].copy(), now=now, overload=input_bad)
             if result.sequence >= 0:
                 transport.submit(result.sequence, result.audio)
             received = transport.playout(now)
-            if status:
-                stats["audio_status_events"] += 1
-                limiter.reset()
-            else:
-                outdata[:, 0] = limiter.process(received)
+            outdata[:, 0] = limiter.process(received)
         except Exception as exc:
             if not callback_errors:
                 callback_errors.append(type(exc).__name__ + ": " + str(exc))

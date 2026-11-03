@@ -138,3 +138,62 @@ def test_remote_endpoint_requires_numeric_unicast(value):
 
 def test_bind_can_use_all_interfaces():
     assert live.endpoint("0.0.0.0:5000") == ("0.0.0.0", 5000)
+
+
+def test_input_status_separates_input_and_output_flags():
+    class Flags:
+        def __init__(self, **kw):
+            self.__dict__.update(kw)
+
+        def __bool__(self):
+            return any(self.__dict__.values())
+
+    out_only = Flags(input_overflow=False, input_underflow=False, output_underflow=True)
+    in_over = Flags(input_overflow=True, input_underflow=False, output_underflow=False)
+    assert live.input_status(out_only) is False
+    assert live.input_status(in_over) is True
+    assert live.input_status(Flags(input_overflow=False)) is False
+    assert live.input_status(True) is True and live.input_status(False) is False
+
+
+def test_output_underflow_does_not_mute_input_or_playback(fake_runtime, monkeypatch):
+    state, sd, _ = fake_runtime
+    seen = {}
+
+    class Flags:
+        input_overflow = False
+        input_underflow = False
+        output_underflow = True
+        output_overflow = False
+
+        def __bool__(self):
+            return True
+
+    class Controller:
+        def __init__(self, *a, **kw):
+            pass
+
+        def process(self, block, **kw):
+            seen["overload"] = kw["overload"]
+            return SimpleNamespace(sequence=1, audio=block.copy())
+
+        def close(self):
+            return {"worker_stopped": True}
+
+        def summary(self):
+            return {}
+
+    class Stream(sd.Stream):
+        def __enter__(self):
+            out = np.zeros((256, 1), dtype=np.float32)
+            self.callback(np.full((256, 1), 0.1, dtype=np.float32), out, 256, None, Flags())
+            state["played"].append(out)
+            return self
+
+    monkeypatch.setattr(live, "TxController", Controller)
+    monkeypatch.setattr(sd, "Stream", Stream)
+    report = live.run_peer(args(), Path("unused"), Settings())
+    assert seen["overload"] is False
+    assert np.any(state["played"][0])
+    assert report["audio"]["output_status_events"] == 1
+    assert report["audio"]["input_status_events"] == 0
