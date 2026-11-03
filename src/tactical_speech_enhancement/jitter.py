@@ -16,16 +16,23 @@ from .protocol import FRAME_SAMPLES, FRAME_SECONDS, Packet
 
 MAX_RETIRED_STREAMS = 64
 SESSION_TIMEOUT = 1.0
+CONVERGE_FADE_SAMPLES = 32  # 2 ms crossfade when a frame is skipped to reduce delay
 
 
 class JitterBuffer:
     """Not internally synchronized: the owner protects push/playout with one lock."""
 
-    def __init__(self, target_frames: int = 4, max_frames: int = 8) -> None:
+    def __init__(self, target_frames: int = 4, max_frames: int = 8, converge_ticks: int = 62) -> None:
         if not 1 <= target_frames <= max_frames <= 64:
             raise ValueError("require 1 <= target_frames <= max_frames <= 64")
+        if converge_ticks < 0:
+            raise ValueError("converge_ticks must be nonnegative (0 disables convergence)")
         self.target_frames = target_frames
         self.max_frames = max_frames
+        # Without this the level only falls on overflow, so after drift or a
+        # network burst the delay stays near the maximum indefinitely.
+        self.converge_ticks = converge_ticks
+        self._above_target = 0
         self._frames: dict[int, NDArray[np.float32]] = {}
         self._stream_id: bytes | None = None
         self._retired: OrderedDict[bytes, None] = OrderedDict()
@@ -50,6 +57,8 @@ class JitterBuffer:
             sequence_skipped=0,
             rebuffered=0,
             high_watermark=0,
+            converge_dropped=0,
+            underrun_held=0,
         )
 
     @property
@@ -70,6 +79,7 @@ class JitterBuffer:
         self._played = False
         self._misses = 0
         self._receive_skips_since_playout = 0
+        self._above_target = 0
 
     def push(self, packet: Packet, arrival: float) -> bool:
         if not math.isfinite(arrival):
@@ -148,6 +158,19 @@ class JitterBuffer:
                     del self._frames[sequence]
                     self._counters["overflow_dropped"] += 1
         self._receive_skips_since_playout = 0
+        if self._played and not self._frames:
+            # Underrun with nothing queued: the due frame is probably just late.
+            # Hold its sequence (adds one frame of delay) instead of skipping it,
+            # otherwise a buffer running at zero margin drops every late arrival.
+            self._deadline += FRAME_SECONDS
+            self._counters["underrun_held"] += 1
+            self._misses += 1
+            self._counters["lost"] += 1
+            if self._misses >= self.max_frames:
+                self._deadline = None
+                self._misses = 0
+                self._counters["rebuffered"] += 1
+            return silent
         result = self._frames.pop(self._next_sequence, None)
         self._next_sequence += 1
         self._deadline += FRAME_SECONDS
@@ -165,6 +188,24 @@ class JitterBuffer:
             return silent
         self._misses = 0
         self._counters["played"] += 1
+        if self.converge_ticks and len(self._frames) > self.target_frames + 1:
+            self._above_target += 1
+        else:
+            self._above_target = 0
+        if self._above_target >= self.converge_ticks > 0:
+            following = self._frames.pop(self._next_sequence, None)
+            if following is not None:
+                # Remove one frame of delay: start with the continuation of what
+                # was just heard and fade into the following frame, skipping the
+                # rest of the current one.
+                self._next_sequence += 1
+                fade = min(CONVERGE_FADE_SAMPLES, FRAME_SAMPLES)
+                weights = np.linspace(0.0, 1.0, fade, dtype=np.float32)
+                blended = following.copy()
+                blended[:fade] = result[:fade] * (1 - weights) + following[:fade] * weights
+                result = blended
+                self._counters["converge_dropped"] += 1
+            self._above_target = 0
         return result
 
     def summary(self) -> dict[str, int | float | None]:
