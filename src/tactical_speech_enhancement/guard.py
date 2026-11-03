@@ -45,6 +45,10 @@ class InputGuard:
         self.reentries = 0
         self.invalid_frames = 0
         self.saturated_frames = 0
+        self.ignored_relative = 0
+        self._duck = self.settings.protection_mode == "duck"
+        self._level: float | None = None   # recent frame RMS (duck mode only)
+        self._last_gain = 0.0
 
     def inspect(self, block: object, *, overload: bool = False) -> InputDecision:
         """Reject malformed PCM before it can enter the model queue."""
@@ -81,12 +85,28 @@ class InputGuard:
                 run = min(run + 1, s.saturation_samples) if is_rail else 0
                 saturated |= run >= s.saturation_samples
             self._rail_run = run
+            triggered = saturated or peak >= peak_threshold
+            normal = peak <= recovery_threshold
+            if self._duck:
+                rms = float(np.sqrt(np.mean(np.square(samples, dtype=np.float64))))
+                hot = self._level is None or rms > self._level * 10 ** (s.relative_trigger_db / 20)
+                if triggered and not hot:
+                    # Loud or clipped speech near its own recent level: not a blast.
+                    self.ignored_relative += 1
+                    saturated = False
+                    triggered = False
+                normal = not triggered and (normal or not hot)
+                # Track the level slowly while anomalous, so a blast is not absorbed
+                # into the reference but sustained shouting is within about a second.
+                tau = 2.0 if triggered else 0.3
+                a = 1 - math.exp(-s.frame_seconds / tau)
+                floor = 1e-3
+                self._level = max(floor, rms if self._level is None else self._level + a * (rms - self._level))
             if saturated:
                 reason = "saturation"
-            elif peak >= peak_threshold:
+            elif triggered:
                 reason = "large_peak"
             audio = samples.astype(np.float32, copy=True)
-            normal = peak <= recovery_threshold
         else:
             self._rail_run = 0
             self.invalid_frames += 1
@@ -130,6 +150,15 @@ class InputGuard:
                 gains = np.full(s.frame_samples, self.gain, dtype=np.float32)
         else:
             gains = np.ones(s.frame_samples, dtype=np.float32)
+        if self._duck:
+            # Attenuate instead of zeroing, and never step the gain inside a sample.
+            floor = s.duck_gain
+            gains = (floor + (1 - floor) * gains).astype(np.float32)
+            fade = s.gain_fade_samples
+            if fade and abs(float(gains[0]) - self._last_gain) > 1e-9:
+                weights = np.arange(1, fade + 1, dtype=np.float32) / fade
+                gains[:fade] = self._last_gain + (gains[:fade] - self._last_gain) * weights
+            self._last_gain = float(gains[-1])
         return InputDecision(
             audio=audio, gains=gains, generation=self.generation, valid=valid,
             unsafe=unsafe, reason=reason, stage=self.stage, peak=peak, saturated=saturated,
@@ -140,6 +169,7 @@ class InputGuard:
             "frames": self.frames, "anomalies": self.anomalies,
             "reentries": self.reentries, "invalid_frames": self.invalid_frames,
             "saturated_frames": self.saturated_frames, "generation": self.generation,
+            "ignored_relative": self.ignored_relative, "protection_mode": self.settings.protection_mode,
             "stage": self.stage, "gain": self.gain,
         }
 

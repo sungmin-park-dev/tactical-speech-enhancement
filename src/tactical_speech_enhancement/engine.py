@@ -76,10 +76,15 @@ class TxController:
         route = "startup"
         source_muted = True
         if source is not None:
-            source_muted = (
-                source.unsafe or not source.valid or source.generation != decision.generation
-                or not np.any(source.gains)
-            )
+            if s.protection_mode == "duck":
+                # Gains already carry the attenuation; only malformed input is
+                # silenced, and frames before an anomaly are not cut retroactively.
+                source_muted = not source.valid
+            else:
+                source_muted = (
+                    source.unsafe or not source.valid or source.generation != decision.generation
+                    or not np.any(source.gains)
+                )
             if source_muted:
                 route = "muted"
             else:

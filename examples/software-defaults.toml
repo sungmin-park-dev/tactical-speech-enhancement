@@ -16,3 +16,10 @@ limiter_release_ms = 100.0
 jitter_target_frames = 4
 jitter_max_frames = 8
 telemetry_capacity = 4096
+# Protection: "mute" (default) zeroes anomalous source frames.
+# "duck" attenuates them by duck_gain_db with gain_fade_ms fades, and treats a
+# peak as anomalous only when the frame is relative_trigger_db above the recent level.
+protection_mode = "mute"
+duck_gain_db = -30.0
+relative_trigger_db = 12.0
+gain_fade_ms = 2.0

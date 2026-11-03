@@ -78,6 +78,12 @@ def current_pipeline(x, **_):
     return _controller_run(x, enh)
 
 
+def current_duck(x, **_):
+    """Current pipeline with protection_mode="duck" (attenuate, relative trigger)."""
+    enh = GtcrnStreamingEnhancer(MODEL, expected_sha256=OFFICIAL_MODEL_SHA256)
+    return _controller_run(x, enh, Settings(protection_mode="duck"))
+
+
 def guard_only(x, **_):
     return _controller_run(x, GtcrnStream(PassthroughSpectralEngine()))
 
@@ -328,4 +334,5 @@ SYSTEMS = {
     "S9_dtln": dtln,
     "S10_aec_gtcrn": aec_gtcrn,
     "S11_aec_only": aec_only,
+    "S12_current_duck": current_duck,
 }
