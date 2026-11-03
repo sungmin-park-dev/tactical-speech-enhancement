@@ -16,6 +16,7 @@ dependencies = ["numpy>=1.26,<3", "onnxruntime>=1.18,<2", "soundfile>=0.12,<1"]
 [project.optional-dependencies]
 audio = ["sounddevice>=0.5,<1"]
 dev = ["pytest>=8,<10", "ruff>=0.12,<1", "build>=1,<2"]
+bench = ["scipy>=1.11", "pesq>=0.0.4", "pystoi>=0.4", "pyroomacoustics>=0.7", "faster-whisper>=1.0", "jiwer>=3", "psutil>=5"]
 
 [project.scripts]
 tse = "tactical_speech_enhancement.cli:main"
