@@ -9,6 +9,11 @@ import numpy as np
 
 from .config import Settings
 
+# Level tracking for protection_mode="duck" (seconds).
+LEVEL_RISE_S = 0.3
+LEVEL_TRIGGERED_RISE_S = 2.0
+LEVEL_DECAY_S = 1.0
+
 
 @dataclass(frozen=True)
 class InputDecision:
@@ -89,7 +94,11 @@ class InputGuard:
             normal = peak <= recovery_threshold
             if self._duck:
                 rms = float(np.sqrt(np.mean(np.square(samples, dtype=np.float64))))
-                hot = self._level is None or rms > self._level * 10 ** (s.relative_trigger_db / 20)
+                hot = (self._level is None
+                       or rms > self._level * 10 ** (s.relative_trigger_db / 20)
+                       # short impulses (gunshots) barely move a 16 ms RMS, but their
+                       # peak sits far above the speech level, unlike clipped speech
+                       or peak > self._level * 10 ** (s.peak_over_level_db / 20))
                 if triggered and not hot:
                     # Loud or clipped speech near its own recent level: not a blast.
                     self.ignored_relative += 1
@@ -98,7 +107,12 @@ class InputGuard:
                 normal = not triggered and (normal or not hot)
                 # Track the level slowly while anomalous, so a blast is not absorbed
                 # into the reference but sustained shouting is within about a second.
-                tau = 2.0 if triggered else 0.3
+                if triggered:
+                    tau = LEVEL_TRIGGERED_RISE_S
+                elif self._level is None or rms >= self._level:
+                    tau = LEVEL_RISE_S
+                else:
+                    tau = LEVEL_DECAY_S  # hold the speech level through pauses
                 a = 1 - math.exp(-s.frame_seconds / tau)
                 floor = 1e-3
                 self._level = max(floor, rms if self._level is None else self._level + a * (rms - self._level))

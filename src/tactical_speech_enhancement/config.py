@@ -31,20 +31,21 @@ class Settings:
     # the recent level, so loud or clipped speech is not treated as a blast.
     protection_mode: str = "mute"
     duck_gain_db: float = -30.0
-    relative_trigger_db: float = 12.0
+    relative_trigger_db: float = 15.0
+    peak_over_level_db: float = 22.0
     gain_fade_ms: float = 2.0
 
     def __post_init__(self) -> None:
         if self.protection_mode not in ("mute", "duck"):
             raise ValueError("protection_mode must be 'mute' or 'duck'")
-        for name in ("duck_gain_db", "relative_trigger_db", "gain_fade_ms"):
+        for name in ("duck_gain_db", "relative_trigger_db", "peak_over_level_db", "gain_fade_ms"):
             value = getattr(self, name)
             if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
                 raise ValueError(f"{name} must be a finite number")
         if not -120 <= self.duck_gain_db < 0:
             raise ValueError("duck_gain_db must be in [-120, 0)")
-        if self.relative_trigger_db < 0:
-            raise ValueError("relative_trigger_db must be nonnegative")
+        if self.relative_trigger_db < 0 or self.peak_over_level_db < 0:
+            raise ValueError("relative_trigger_db and peak_over_level_db must be nonnegative")
         if not 0 <= self.gain_fade_ms * self.sample_rate / 1000 <= self.frame_samples:
             raise ValueError("gain_fade_ms must fit within one frame")
         if self.sample_rate != 16_000 or self.frame_samples != 256:
