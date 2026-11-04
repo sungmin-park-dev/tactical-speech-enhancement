@@ -131,6 +131,7 @@ def run_peer(args, model_path: Path, settings: Settings) -> dict:
             jitter_target_frames=settings.jitter_target_frames,
             jitter_max_frames=settings.jitter_max_frames,
             ceiling_dbfs=settings.ceiling_dbfs,
+            jitter_conceal_frames=settings.jitter_conceal_frames,
         )
         transport.start()
         with sd.Stream(

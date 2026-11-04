@@ -22,7 +22,10 @@ CONVERGE_FADE_SAMPLES = 32  # 2 ms crossfade when a frame is skipped to reduce d
 class JitterBuffer:
     """Not internally synchronized: the owner protects push/playout with one lock."""
 
-    def __init__(self, target_frames: int = 4, max_frames: int = 8, converge_ticks: int = 62) -> None:
+    def __init__(
+        self, target_frames: int = 4, max_frames: int = 8, converge_ticks: int = 62,
+        conceal_frames: int = 0,
+    ) -> None:
         if not 1 <= target_frames <= max_frames <= 64:
             raise ValueError("require 1 <= target_frames <= max_frames <= 64")
         if converge_ticks < 0:
@@ -33,6 +36,13 @@ class JitterBuffer:
         # network burst the delay stays near the maximum indefinitely.
         self.converge_ticks = converge_ticks
         self._above_target = 0
+        if not 0 <= conceal_frames <= max_frames:
+            raise ValueError("conceal_frames must be in [0, max_frames]")
+        # Loss concealment: repeat the last played frame with decaying gain for
+        # up to conceal_frames missing frames instead of inserting hard silence.
+        self.conceal_frames = conceal_frames
+        self._last_audio: NDArray[np.float32] | None = None
+        self._concealed_run = 0
         self._frames: dict[int, NDArray[np.float32]] = {}
         self._stream_id: bytes | None = None
         self._retired: OrderedDict[bytes, None] = OrderedDict()
@@ -59,6 +69,7 @@ class JitterBuffer:
             high_watermark=0,
             converge_dropped=0,
             underrun_held=0,
+            concealed=0,
         )
 
     @property
@@ -80,6 +91,8 @@ class JitterBuffer:
         self._misses = 0
         self._receive_skips_since_playout = 0
         self._above_target = 0
+        self._last_audio = None
+        self._concealed_run = 0
 
     def push(self, packet: Packet, arrival: float) -> bool:
         if not math.isfinite(arrival):
@@ -170,7 +183,7 @@ class JitterBuffer:
                 self._deadline = None
                 self._misses = 0
                 self._counters["rebuffered"] += 1
-            return silent
+            return self._conceal(silent)
         result = self._frames.pop(self._next_sequence, None)
         self._next_sequence += 1
         self._deadline += FRAME_SECONDS
@@ -185,8 +198,9 @@ class JitterBuffer:
                 self._frames.clear()
                 self._misses = 0
                 self._counters["rebuffered"] += 1
-            return silent
+            return self._conceal(silent)
         self._misses = 0
+        self._concealed_run = 0
         self._counters["played"] += 1
         if self.converge_ticks and len(self._frames) > self.target_frames + 1:
             self._above_target += 1
@@ -206,7 +220,19 @@ class JitterBuffer:
                 result = blended
                 self._counters["converge_dropped"] += 1
             self._above_target = 0
+        self._last_audio = result
         return result
+
+    def _conceal(self, silent: NDArray[np.float32]) -> NDArray[np.float32]:
+        if not self.conceal_frames or self._last_audio is None or self._concealed_run >= self.conceal_frames:
+            self._concealed_run += 1
+            return silent
+        start = 1 - self._concealed_run / self.conceal_frames
+        end = 1 - (self._concealed_run + 1) / self.conceal_frames
+        ramp = np.linspace(start, end, FRAME_SAMPLES, dtype=np.float32)
+        self._concealed_run += 1
+        self._counters["concealed"] += 1
+        return (self._last_audio * ramp).astype(np.float32)
 
     def summary(self) -> dict[str, int | float | None]:
         return {

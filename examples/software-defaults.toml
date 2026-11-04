@@ -15,6 +15,7 @@ ceiling_dbfs = -6.0
 limiter_release_ms = 100.0
 jitter_target_frames = 4
 jitter_max_frames = 8
+jitter_conceal_frames = 0
 telemetry_capacity = 4096
 # Protection: "mute" (default) zeroes anomalous source frames.
 # "duck" attenuates them by duck_gain_db with gain_fade_ms fades, and treats a
@@ -25,3 +26,5 @@ duck_gain_db = -30.0
 relative_trigger_db = 15.0
 peak_over_level_db = 22.0
 gain_fade_ms = 2.0
+# Share of the aligned input mixed into the model output (0 = model only).
+dry_mix = 0.0

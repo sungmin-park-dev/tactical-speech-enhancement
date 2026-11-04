@@ -96,6 +96,8 @@ def main() -> None:
     ap.add_argument("--infer-extra-ms", type=float, default=0.0,
                     help="extra time added to each model hop to emulate a slower CPU")
     ap.add_argument("--infer-extra-mode", choices=["busy", "sleep"], default="busy")
+    ap.add_argument("--conceal-frames", type=int, default=0)
+    ap.add_argument("--protection-mode", choices=["mute", "duck"], default="mute")
     args = ap.parse_args()
     if args.infer_extra_ms > 0:
         base_cls = tse_live.GtcrnStreamingEnhancer
@@ -210,7 +212,7 @@ def main() -> None:
     sampler_thread = threading.Thread(target=sampler, name="sampler", daemon=True)
     sampler_thread.start()
 
-    settings = Settings()
+    settings = Settings(jitter_conceal_frames=args.conceal_frames, protection_mode=args.protection_mode)
     run_args = argparse.Namespace(bind=args.bind, peer=args.peer, input_device=0, output_device=0,
                                   duration=args.duration)
     started = time.monotonic()

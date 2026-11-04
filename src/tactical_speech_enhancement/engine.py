@@ -108,6 +108,9 @@ class TxController:
                         self._model_mix = float(weights[-1])
                     else:
                         weights = np.zeros(s.frame_samples, dtype=np.float32)
+                    # dry_mix keeps a share of the aligned input ("observation adding"),
+                    # which reduces enhancement artifacts at the cost of residual noise.
+                    weights = weights * (1 - s.dry_mix)
                     output = source.audio * (1 - weights) + result.audio * weights
                     route = "model" if self._model_mix == 1 else "model_crossfade"
                 else:

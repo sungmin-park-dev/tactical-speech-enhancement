@@ -310,3 +310,28 @@ def test_public_speech_with_impulses_has_no_dry_leakage_and_bounded_recovery(pla
         assert summary["worker"]["submitted"] == len(audio) // 256 - len(bad_sources)
     finally:
         controller.close()
+
+
+def test_dry_mix_blends_aligned_input_into_model_output():
+    from tactical_speech_enhancement.config import Settings as _Settings
+
+    outputs = {}
+    for mix in (0.0, 0.25, 1.0):
+        settings = _Settings(dry_mix=mix)
+        model = DelayedModel(scale=0.5)
+        controller = offline_controller(model, settings)
+        last = None
+        for i in range(60):
+            last = controller.process(frame(0.1), now=i * 0.016).audio
+        outputs[mix] = float(last[-1])
+    # model alone halves the input; dry_mix moves it linearly toward the input
+    assert outputs[0.0] == pytest.approx(0.05, rel=1e-3)
+    assert outputs[0.25] == pytest.approx(0.0625, rel=1e-3)
+    assert outputs[1.0] == pytest.approx(0.1, rel=1e-3)
+
+
+def test_dry_mix_is_validated():
+    from tactical_speech_enhancement.config import Settings as _Settings
+
+    with pytest.raises(ValueError):
+        _Settings(dry_mix=1.5)

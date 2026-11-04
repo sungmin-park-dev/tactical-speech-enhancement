@@ -222,3 +222,21 @@ def test_converge_fade_is_continuous_at_the_splice():
     assert out[0] == pytest.approx(0.1)          # starts as the frame that was due
     assert out[-1] == pytest.approx(0.2)          # ends in the following frame
     assert np.all(np.diff(out) >= -1e-7)          # monotonic blend, no jump
+
+
+def test_concealment_repeats_last_frame_with_decay_then_silence():
+    jitter = JitterBuffer(1, 8, converge_ticks=0, conceal_frames=3)
+    jitter.push(packet(0), 0.0)
+    now = jitter.summary()["next_deadline"]
+    first = jitter.playout(now)
+    assert first.any()
+    levels = [float(np.abs(jitter.playout(now + k * FRAME_SECONDS)).max()) for k in range(1, 6)]
+    assert levels[0] == pytest.approx(0.1, rel=1e-6)          # starts at the last frame's level
+    assert levels[0] > levels[1] > levels[2] > 0              # decays over 3 frames
+    assert levels[3] == 0 and levels[4] == 0                  # then silence
+    assert jitter.summary()["concealed"] == 3
+
+
+def test_concealment_off_by_default():
+    jitter = JitterBuffer()
+    assert jitter.conceal_frames == 0
