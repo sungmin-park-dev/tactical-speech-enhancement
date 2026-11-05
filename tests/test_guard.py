@@ -3,7 +3,11 @@ import math
 import numpy as np
 import pytest
 
+from tactical_speech_enhancement.config import Settings
 from tactical_speech_enhancement.guard import InputGuard, PeakLimiter
+
+# These tests pin the exact-zero guarantees of the mute protection mode.
+MUTE = Settings(protection_mode="mute")
 
 
 def frame(value=0.1, dtype=np.float32):
@@ -11,7 +15,7 @@ def frame(value=0.1, dtype=np.float32):
 
 
 def opened_guard():
-    guard = InputGuard()
+    guard = InputGuard(MUTE)
     for _ in range(12):
         guard.inspect(frame())
     assert guard.stage == "normal"
@@ -19,7 +23,7 @@ def opened_guard():
 
 
 def test_startup_confirm_then_continuous_sample_ramp():
-    guard = InputGuard()
+    guard = InputGuard(MUTE)
     for _ in range(4):
         assert not guard.inspect(frame()).gains.any()
     gains = np.concatenate([guard.inspect(frame()).gains for _ in range(8)])

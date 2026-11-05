@@ -17,11 +17,11 @@ jitter_target_frames = 4
 jitter_max_frames = 8
 jitter_conceal_frames = 0
 telemetry_capacity = 4096
-# Protection: "mute" (default) zeroes anomalous source frames.
-# "duck" attenuates them by duck_gain_db with gain_fade_ms fades, and treats a
+# Protection: "duck" (default) attenuates them by duck_gain_db with gain_fade_ms fades, and treats a
 # peak as anomalous only when the frame RMS is relative_trigger_db (or its peak
 # peak_over_level_db) above the recent level. Tuned on synthetic data only.
-protection_mode = "mute"
+# "mute" zeroes anomalous source frames exactly (previous default).
+protection_mode = "duck"
 duck_gain_db = -30.0
 relative_trigger_db = 15.0
 peak_over_level_db = 22.0

@@ -27,8 +27,9 @@ def opened(settings=DUCK, rms=0.05, frames=40):
     return guard
 
 
-def test_default_mode_is_mute():
-    assert Settings().protection_mode == "mute"
+def test_default_mode_is_duck_and_mute_remains_available():
+    assert Settings().protection_mode == "duck"
+    assert Settings(protection_mode="mute").protection_mode == "mute"
 
 
 @pytest.mark.parametrize("kwargs", [{"protection_mode": "soft"}, {"duck_gain_db": 0.0},
@@ -79,3 +80,23 @@ def test_engine_duck_keeps_frames_before_anomaly_and_attenuates_the_anomaly():
     blast_out = outputs[42]
     assert np.any(blast_out)
     assert np.sqrt(np.mean(blast_out[64:] ** 2)) < 0.05 * np.sqrt(np.mean(frames[40] ** 2))
+
+
+@pytest.mark.parametrize("bad", [np.full(256, np.nan, np.float32), np.full(256, 2.0, np.float32), np.zeros(10, np.float32)])
+def test_default_mode_still_zeroes_malformed_input(bad):
+    class Identity:
+        def reset(self):
+            pass
+
+        def process(self, block):
+            return block.copy()
+
+    settings = Settings()
+    model = Identity()
+    ctrl = TxController(model, settings, SynchronousWorker(model, settings))
+    for i in range(40):
+        ctrl.process(speech_like(0.05), now=i * 0.016)
+    outputs = [ctrl.process(bad, now=40 * 0.016).audio]
+    outputs += [ctrl.process(speech_like(0.05), now=(41 + k) * 0.016).audio for k in range(2)]
+    assert not np.any(outputs[2])          # the malformed source frame, two ticks later
+    assert all(np.max(np.abs(o)) <= 10 ** (-6 / 20) for o in outputs)

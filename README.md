@@ -11,9 +11,11 @@ covers single-microphone headset communication between two peers and the
 software validation behind it.
 
 Speech is processed with the streaming ONNX version of
-[GTCRN](https://github.com/Xiaobin-Rong/gtcrn). When a large peak or clipping
-is detected, the affected segment is muted, and gain is restored gradually once
-the input is normal again. Preserving speech during a blast is not a goal.
+[GTCRN](https://github.com/Xiaobin-Rong/gtcrn). When a sudden large peak or
+clipping is detected, the affected segment is attenuated by 30 dB with short
+fades, and gain is restored gradually once the input is normal again
+(`protection_mode = "duck"`). The earlier behaviour, which mutes the segment
+exactly, remains available as `protection_mode = "mute"`.
 
 ![Spectrograms of the clean reference, the noisy input and the processed output](docs/figures/noise-spectrogram.svg)
 

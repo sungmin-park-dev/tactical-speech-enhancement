@@ -31,7 +31,7 @@ class Settings:
     # "duck": they are attenuated by duck_gain_db with short fades, and a peak
     # only counts as anomalous when the frame is also relative_trigger_db above
     # the recent level, so loud or clipped speech is not treated as a blast.
-    protection_mode: str = "mute"
+    protection_mode: str = "duck"
     duck_gain_db: float = -30.0
     relative_trigger_db: float = 15.0
     peak_over_level_db: float = 22.0
