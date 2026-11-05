@@ -14,3 +14,5 @@ recordings/
 *.tar.gz
 # Third-party runtime session caches
 *.ses
+bench/work/
+runs/

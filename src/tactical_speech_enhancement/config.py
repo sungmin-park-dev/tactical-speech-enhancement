@@ -24,9 +24,36 @@ class Settings:
     limiter_release_ms: float = 100.0
     jitter_target_frames: int = 4
     jitter_max_frames: int = 8
+    # Frames of decaying repetition used to conceal a lost packet (0 = silence).
+    jitter_conceal_frames: int = 0
     telemetry_capacity: int = 4096
+    # "mute": anomalous source frames become exact zeros (default, unchanged).
+    # "duck": they are attenuated by duck_gain_db with short fades, and a peak
+    # only counts as anomalous when the frame is also relative_trigger_db above
+    # the recent level, so loud or clipped speech is not treated as a blast.
+    protection_mode: str = "duck"
+    duck_gain_db: float = -30.0
+    relative_trigger_db: float = 15.0
+    peak_over_level_db: float = 22.0
+    gain_fade_ms: float = 2.0
+    # Share of the delay-aligned input mixed into the model output (0 = model only).
+    dry_mix: float = 0.0
 
     def __post_init__(self) -> None:
+        if self.protection_mode not in ("mute", "duck"):
+            raise ValueError("protection_mode must be 'mute' or 'duck'")
+        for name in ("duck_gain_db", "relative_trigger_db", "peak_over_level_db", "gain_fade_ms", "dry_mix"):
+            value = getattr(self, name)
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+                raise ValueError(f"{name} must be a finite number")
+        if not 0 <= self.dry_mix <= 1:
+            raise ValueError("dry_mix must be in [0, 1]")
+        if not -120 <= self.duck_gain_db < 0:
+            raise ValueError("duck_gain_db must be in [-120, 0)")
+        if self.relative_trigger_db < 0 or self.peak_over_level_db < 0:
+            raise ValueError("relative_trigger_db and peak_over_level_db must be nonnegative")
+        if not 0 <= self.gain_fade_ms * self.sample_rate / 1000 <= self.frame_samples:
+            raise ValueError("gain_fade_ms must fit within one frame")
         if self.sample_rate != 16_000 or self.frame_samples != 256:
             raise ValueError("the pinned streaming model requires 16000 Hz / 256 samples")
         for name in (
@@ -62,6 +89,8 @@ class Settings:
             raise ValueError("limiter_release_ms must be positive")
         if self.jitter_target_frames > self.jitter_max_frames:
             raise ValueError("jitter target must not exceed its maximum")
+        if type(self.jitter_conceal_frames) is not int or not 0 <= self.jitter_conceal_frames <= self.jitter_max_frames:
+            raise ValueError("jitter_conceal_frames must be an integer in [0, jitter_max_frames]")
         if self.jitter_max_frames > 64:
             raise ValueError("jitter_max_frames must not exceed 64")
         if self.telemetry_capacity > 4096:
@@ -82,6 +111,14 @@ class Settings:
     @property
     def normal_confirm_frames(self) -> int:
         return round(self.normal_confirm_ms / self.frame_ms)
+
+    @property
+    def duck_gain(self) -> float:
+        return 10 ** (self.duck_gain_db / 20)
+
+    @property
+    def gain_fade_samples(self) -> int:
+        return round(self.gain_fade_ms * self.sample_rate / 1000)
 
     @property
     def recovery_samples(self) -> int:

@@ -175,3 +175,68 @@ def test_short_random_jitter_and_losses_keep_order_without_replay():
     assert all(a < b for a, b in zip(consumed, consumed[1:]))
     assert jitter.summary()["duplicate"] > 0
     assert jitter.summary()["lost"] > 0
+
+
+def test_level_above_target_converges_back_after_a_burst():
+    jitter = JitterBuffer(4, 8)
+    now = 0.0
+    # A burst delivers 8 frames at once (e.g. after a Wi-Fi stall); afterwards
+    # one frame arrives per playout tick, so without convergence the level stays at 8.
+    for s in range(8):
+        jitter.push(packet(s), now)
+    sequence = 8
+    now = jitter.summary()["next_deadline"]
+    played = []
+    for _ in range(62 * 6):
+        played.append(jitter.playout(now).copy())
+        jitter.push(packet(sequence), now)
+        sequence += 1
+        now += FRAME_SECONDS
+    stats = jitter.summary()
+    assert stats["converge_dropped"] >= 2   # 8 -> target + 1 (hysteresis)
+    assert stats["frames"] <= 6
+    assert stats["lost"] == 0
+    assert all(frame.any() for frame in played)
+
+
+def test_convergence_can_be_disabled_and_keeps_level_at_burst_size():
+    jitter = JitterBuffer(4, 8, converge_ticks=0)
+    for s in range(8):
+        jitter.push(packet(s), 0.0)
+    sequence, now = 8, jitter.summary()["next_deadline"]
+    for _ in range(62 * 6):
+        jitter.playout(now)
+        jitter.push(packet(sequence), now)
+        sequence += 1
+        now += FRAME_SECONDS
+    assert jitter.summary()["converge_dropped"] == 0
+    assert jitter.summary()["frames"] >= 7
+
+
+def test_converge_fade_is_continuous_at_the_splice():
+    jitter = JitterBuffer(1, 8, converge_ticks=1)
+    ramp = [np.full(FRAME_SAMPLES, 0.1 * (k + 1), dtype=np.float32) for k in range(4)]
+    for s, audio in enumerate(ramp):
+        jitter.push(Packet((1).to_bytes(16, "big"), s, audio), 0.0)
+    out = jitter.playout(jitter.summary()["next_deadline"])
+    assert out[0] == pytest.approx(0.1)          # starts as the frame that was due
+    assert out[-1] == pytest.approx(0.2)          # ends in the following frame
+    assert np.all(np.diff(out) >= -1e-7)          # monotonic blend, no jump
+
+
+def test_concealment_repeats_last_frame_with_decay_then_silence():
+    jitter = JitterBuffer(1, 8, converge_ticks=0, conceal_frames=3)
+    jitter.push(packet(0), 0.0)
+    now = jitter.summary()["next_deadline"]
+    first = jitter.playout(now)
+    assert first.any()
+    levels = [float(np.abs(jitter.playout(now + k * FRAME_SECONDS)).max()) for k in range(1, 6)]
+    assert levels[0] == pytest.approx(0.1, rel=1e-6)          # starts at the last frame's level
+    assert levels[0] > levels[1] > levels[2] > 0              # decays over 3 frames
+    assert levels[3] == 0 and levels[4] == 0                  # then silence
+    assert jitter.summary()["concealed"] == 3
+
+
+def test_concealment_off_by_default():
+    jitter = JitterBuffer()
+    assert jitter.conceal_frames == 0

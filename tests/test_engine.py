@@ -16,6 +16,9 @@ from tactical_speech_enhancement.worker import (
     _WorkerCore,
 )
 
+# These tests pin the exact-zero guarantees of the mute protection mode.
+MUTE = Settings(protection_mode="mute")
+
 
 def frame(value=0.1):
     return np.full(256, value, np.float32)
@@ -73,7 +76,7 @@ class VirtualWorker(_WorkerCore):
 
 def offline_controller(model=None, settings=None):
     model = model or DelayedModel()
-    settings = settings or Settings()
+    settings = settings or MUTE
     return TxController(model, settings, SynchronousWorker(model, settings))
 
 
@@ -113,7 +116,7 @@ def test_model_only_failure_switches_to_aligned_dry_without_reentering_guard():
 def test_virtual_on_time_inference_has_no_steady_state_misses(delay):
     model = DelayedModel()
     worker = VirtualWorker(model, delay)
-    controller = TxController(model, worker=worker)
+    controller = TxController(model, MUTE, worker=worker)
     for n in range(80):
         now = n * 0.016
         worker.advance(now)
@@ -129,7 +132,7 @@ def test_virtual_on_time_inference_has_no_steady_state_misses(delay):
 def test_virtual_late_or_stuck_inference_never_extends_output_schedule(delay):
     model = DelayedModel()
     worker = VirtualWorker(model, delay)
-    controller = TxController(model, worker=worker)
+    controller = TxController(model, MUTE, worker=worker)
     seen = []
     for n in range(80):
         now = n * 0.016
@@ -175,7 +178,7 @@ def test_late_wrong_generation_result_cannot_open_guard_or_replay_bad_source():
             return InferenceResult(sequence + 1, sequence, generation - 1, frame(0.5), now - 0.016, now - 0.010)
 
     model = DelayedModel()
-    controller = TxController(model, worker=ForgingWorker(model))
+    controller = TxController(model, MUTE, worker=ForgingWorker(model))
     for n in range(20):
         controller.process(frame(), now=n * 0.016)
     shock = controller.process(frame(0.9), now=0.320)
@@ -212,7 +215,7 @@ def test_actual_stalled_worker_does_not_block_capture_or_protection_on_full_queu
 
     model = Stuck()
     worker = InferenceWorker(model, clock=lambda: 0)
-    controller = TxController(model, worker=worker)
+    controller = TxController(model, MUTE, worker=worker)
     controller.process(frame(), now=0)
     assert entered.wait(1)
     try:
@@ -232,7 +235,7 @@ def test_actual_stalled_worker_does_not_block_capture_or_protection_on_full_queu
 
 
 def test_capture_telemetry_is_bounded_and_close_is_idempotent():
-    controller = offline_controller(settings=Settings(telemetry_capacity=8))
+    controller = offline_controller(settings=Settings(telemetry_capacity=8, protection_mode="mute"))
     for n in range(40):
         controller.process(frame(), now=n * 0.016)
     summary = controller.summary()
@@ -310,3 +313,28 @@ def test_public_speech_with_impulses_has_no_dry_leakage_and_bounded_recovery(pla
         assert summary["worker"]["submitted"] == len(audio) // 256 - len(bad_sources)
     finally:
         controller.close()
+
+
+def test_dry_mix_blends_aligned_input_into_model_output():
+    from tactical_speech_enhancement.config import Settings as _Settings
+
+    outputs = {}
+    for mix in (0.0, 0.25, 1.0):
+        settings = _Settings(dry_mix=mix)
+        model = DelayedModel(scale=0.5)
+        controller = offline_controller(model, settings)
+        last = None
+        for i in range(60):
+            last = controller.process(frame(0.1), now=i * 0.016).audio
+        outputs[mix] = float(last[-1])
+    # model alone halves the input; dry_mix moves it linearly toward the input
+    assert outputs[0.0] == pytest.approx(0.05, rel=1e-3)
+    assert outputs[0.25] == pytest.approx(0.0625, rel=1e-3)
+    assert outputs[1.0] == pytest.approx(0.1, rel=1e-3)
+
+
+def test_dry_mix_is_validated():
+    from tactical_speech_enhancement.config import Settings as _Settings
+
+    with pytest.raises(ValueError):
+        _Settings(dry_mix=1.5)

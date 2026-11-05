@@ -32,11 +32,14 @@ class UdpPeer:
         jitter_target_frames: int = 4,
         jitter_max_frames: int = 8,
         ceiling_dbfs: float = -6.0,
+        jitter_conceal_frames: int = 0,
     ) -> None:
         pcm16_limit(ceiling_dbfs)
         self._clock = clock
         self._ceiling_dbfs = ceiling_dbfs
-        self._jitter = JitterBuffer(jitter_target_frames, jitter_max_frames)
+        self._jitter = JitterBuffer(
+            jitter_target_frames, jitter_max_frames, conceal_frames=jitter_conceal_frames
+        )
         self._peer = (socket.gethostbyname(peer[0]), peer[1])
         if not 1 <= peer[1] <= 65535:
             raise ValueError("peer port must be between 1 and 65535")
