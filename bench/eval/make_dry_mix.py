@@ -18,7 +18,8 @@ SP = Path(os.environ.get("TSE_BENCH_DIR", Path(__file__).resolve().parents[1] / 
 TS = SP / "eval/testset"
 OUT = SP / "eval/out"
 B = 0.2
-PAIRS = {"S1d_gtcrn_dry20": "S1_gtcrn_only", "S6d_dns48_dry20": "S6_demucs_dns48"}
+PAIRS = {"S1d_gtcrn_dry20": "S1_gtcrn_only", "S6d_dns48_dry20": "S6_demucs_dns48",
+         "S13d_ulunas_dry20": "S13_ulunas", "S9d_dtln_dry20": "S9_dtln"}
 CONDS = {"c00_clean", "c01_pink5", "c02_vehicle0", "c03_babble5", "c04_gunshot", "c05_blast_sat", "c06_blast_hdr"}
 
 
@@ -30,6 +31,8 @@ def main():
             continue
         x = sf.read(TS / clip["cond"] / f"{clip['uid']}.wav", dtype="float32")[0]
         for new, src in PAIRS.items():
+            if (OUT / new / clip["cond"] / f"{clip['uid']}.wav").exists():
+                continue
             p = OUT / src / clip["cond"] / f"{clip['uid']}.wav"
             y = sf.read(p, dtype="float32")[0]
             # match the enhanced level before mixing so b is a true proportion

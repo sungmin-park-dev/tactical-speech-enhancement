@@ -320,6 +320,30 @@ def demucs_offline(x, name="dns48", **_):
     return y[: len(x)], {}
 
 
+# ------------------------------------------------------------------ UL-UNAS
+_ULUNAS = {}
+
+
+def ulunas(x, **_):
+    """Official UL-UNAS (MIT, TASLP), DNS3 checkpoint; causal, zero lookahead.
+
+    Run as one forward pass: the model is causal, so this matches frame-wise
+    streaming apart from the STFT edge padding at the file boundaries.
+    """
+    import torch
+    if "m" not in _ULUNAS:
+        sys.path.insert(0, str(SP / "ext/ulunas"))
+        from ulunas import ULUNAS
+        model = ULUNAS().eval()
+        state = torch.load(SP / "ext/ulunas/checkpoints/model_trained_on_dns3.tar", map_location="cpu",
+                           weights_only=False)
+        model.load_state_dict(state["model"])
+        _ULUNAS["m"] = model
+    with torch.inference_mode():
+        y = _ULUNAS["m"](torch.from_numpy(x.astype(np.float32))[None])[0].numpy()
+    return y[: len(x)].astype(np.float32), {}
+
+
 SYSTEMS = {
     "S0_noisy": lambda x, **k: (x.copy(), {}),
     "S1_gtcrn_only": gtcrn_only,
@@ -335,4 +359,5 @@ SYSTEMS = {
     "S10_aec_gtcrn": aec_gtcrn,
     "S11_aec_only": aec_only,
     "S12_current_duck": current_duck,
+    "S13_ulunas": ulunas,
 }

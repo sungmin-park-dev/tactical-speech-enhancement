@@ -23,4 +23,8 @@ for f in model_1.onnx model_2.onnx LICENSE; do
   src="pretrained_model/$f"; [ "$f" = LICENSE ] && src=LICENSE
   curl -fsSL -o "$W/ext/dtln/$f" "https://raw.githubusercontent.com/breizhn/DTLN/master/$src"
 done
+mkdir -p "$W/ext/ulunas/checkpoints"   # UL-UNAS, MIT
+for f in ulunas.py LICENSE checkpoints/model_trained_on_dns3.tar; do
+  curl -fsSL -o "$W/ext/ulunas/$f" "https://raw.githubusercontent.com/Xiaobin-Rong/ul-unas/main/$f"
+done
 echo "assets ready in $W"

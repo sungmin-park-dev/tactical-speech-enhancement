@@ -23,6 +23,7 @@ ECHO_CONDS = {"c10_echo_only", "c11_doubletalk"}
 IMPULSE_CONDS = {"c04_gunshot", "c05_blast_sat", "c06_blast_hdr", "c07_speech_loud", "c08_speech_clip"}
 DRY_CONDS = {"c00_clean", "c01_pink5", "c02_vehicle0", "c03_babble5", "c04_gunshot", "c05_blast_sat", "c06_blast_hdr"}
 SYSTEM_CONDS = {"S10_aec_gtcrn": ECHO_CONDS, "S11_aec_only": ECHO_CONDS, "S1d_gtcrn_dry20": DRY_CONDS, "S6d_dns48_dry20": DRY_CONDS,
+                "S13d_ulunas_dry20": DRY_CONDS, "S9d_dtln_dry20": DRY_CONDS,
                 "S6b_demucs_dns48_offline": IMPULSE_CONDS | {"c00_clean", "c01_pink5"}}
 
 
